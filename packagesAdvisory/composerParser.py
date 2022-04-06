@@ -25,8 +25,8 @@ class composer_parser():
             vendor = url_name.split("/")[0]
             product = url_name.split("/")[1]
 
-            if os.path.exists("composer/%s.json" % dirName):
-                with open("composer/%s.json" % dirName, "r") as f:
+            if os.path.exists("/var/DB/packages/composer/%s.json" % dirName):
+                with open("/var/DB/packages/composer/%s.json" % dirName, "r") as f:
                     results_json = json.load(f)
             else:
                 results_json = {}
@@ -101,7 +101,7 @@ class composer_parser():
                     results_json['current'] = results_json['versions'][version]
                     i = i + 1
 
-            with open("composer/%s.json" % dirName, "w") as outfile:
+            with open("/var/DB/packages/composer/%s.json" % dirName, "w") as outfile:
                 json.dump(results_json, outfile)
         except:
             print(f"HTTPError: HTTP Error 404: Not Found : {url}")

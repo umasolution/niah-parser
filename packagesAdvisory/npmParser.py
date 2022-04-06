@@ -135,7 +135,7 @@ class npm_parser():
                 dirName = url_name
 
 
-            with open("npm/%s.json" % dirName, "w") as outfile:
+            with open("/var/DB/packages/npm/%s.json" % dirName, "w") as outfile:
                 json.dump(results_json, outfile)
 
         except:
@@ -154,12 +154,11 @@ class npm_parser():
 
             i = 0
             for tagname in tqdm(out_data["rows"]):
-                if i > 411790:
-                    if tagname["id"].startswith("-"):
-                        continue
-                    else:
-                        url = f"https://registry.npmjs.org/{tagname['id']}";
-                        self.npmParser(tagname["id"], url)
+                if tagname["id"].startswith("-"):
+                    continue
+                else:
+                    url = f"https://registry.npmjs.org/{tagname['id']}";
+                    self.npmParser(tagname["id"], url)
 
                 i = i + 1
         else:
@@ -189,6 +188,7 @@ class npm_parser():
 
 
 if __name__ == '__main__':
+    #if i > 1128772:
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--scan', type=str,  help='enter scan yes/no')
     results = parser.parse_args()

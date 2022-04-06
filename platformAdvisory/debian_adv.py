@@ -280,7 +280,7 @@ class moniDebianDB():
                                 versions = det['version']
 
 
-                            niah_product_id = "NIAH-PLATFORM-DEBIAN-%s" % (product)
+                            niah_product_id = "NIAH-PLATFORM-DEBIAN-%s" % (product.upper())
                             
 
                             res = {}
@@ -335,6 +335,15 @@ class moniDebianDB():
                             fetchData = self.check_niahid_entry(niahId)
                             if fetchData:
                                 affected_products_versions_old = fetchData[0][7]
+                                cwe_id = fetchData[0][0]
+                                refe = fetchData[0][1]
+                                refe['data'].append(reference)
+                                desc1 = fetchData[0][2]
+                                desc = fetchData[0][2]
+                                desc['debian'] = name
+                                basemetricv3_data = fetchData[0][3]
+                                basemetricv2_data = fetchData[0][4]
+
                                 for affected_version_nu in affected_products_versions_old:
                                     if affected_version_nu not in affected_products_versions:
                                         affected_products_versions.append(affected_version_nu)
@@ -357,7 +366,7 @@ class moniDebianDB():
                                 self.connection.commit()
                             except:
                                 try:
-                                    desc = {}
+                                    desc = desc1
                                     query = "INSERT INTO vuln_tab(niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision)VALUES('{niahId}', '{data_type}', '{data_id}', '{cwe_ids}', '{references}', '{description}', '{baseMetricV2}', '{baseMetricV3}', '{publishedDate}', '{lastModifiedDate}', '{affected_products_versions}', '1', 'indev', '{revision}');".format(niahId=niahId, data_type=data_type, data_id=data_id, cwe_ids=json.dumps(cwe_id), references=json.dumps(refe), description=json.dumps(desc), baseMetricV2=json.dumps(basemetricv2_data), baseMetricV3=json.dumps(basemetricv3_data), publishedDate=publisheddate, lastModifiedDate=lastmodifieddate, affected_products_versions=json.dumps(affected_products_versions), revision=revision)
                                     self.cursor.execute(query)
                                     self.connection.commit()        
@@ -613,7 +622,7 @@ class moniDebianDB():
                                             versions = det['version']
 
 
-                                        niah_product_id = "NIAH-PLATFORM-DEBIAN-%s" % (product)
+                                        niah_product_id = "NIAH-PLATFORM-DEBIAN-%s" % (product.upper())
                                         
 
                                         res = {}
@@ -666,6 +675,15 @@ class moniDebianDB():
                                         fetchData = self.check_niahid_entry(niahId)
                                         if fetchData:
                                             affected_products_versions_old = fetchData[0][7]
+                                            cwe_id = fetchData[0][0]
+                                            refe = fetchData[0][1]
+                                            refe['data'].append(reference)
+                                            desc1 = fetchData[0][2]
+                                            desc = fetchData[0][2]
+                                            desc['debian'] = name
+                                            basemetricv3_data = fetchData[0][3]
+                                            basemetricv2_data = fetchData[0][4]
+
                                             for affected_version_nu in affected_products_versions_old:
                                                 if affected_version_nu not in affected_products_versions:
                                                     affected_products_versions.append(affected_version_nu)
@@ -686,7 +704,7 @@ class moniDebianDB():
                                             self.connection.commit()
                                         except:
                                             try:
-                                                desc = {}
+                                                desc = desc1
                                                 query = "INSERT INTO vuln_tab(niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision)VALUES('{niahId}', '{data_type}', '{data_id}', '{cwe_ids}', '{references}', '{description}', '{baseMetricV2}', '{baseMetricV3}', '{publishedDate}', '{lastModifiedDate}', '{affected_products_versions}', '1', 'indev', '{revision}');".format(niahId=niahId, data_type=data_type, data_id=data_id, cwe_ids=json.dumps(cwe_id), references=json.dumps(refe), description=json.dumps(desc), baseMetricV2=json.dumps(basemetricv2_data), baseMetricV3=json.dumps(basemetricv3_data), publishedDate=publisheddate, lastModifiedDate=lastmodifieddate, affected_products_versions=json.dumps(affected_products_versions), revision=revision)
                                                 self.cursor.execute(query)
                                                 self.connection.commit()        

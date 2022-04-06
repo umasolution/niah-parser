@@ -411,6 +411,9 @@ class GHSAdvisory():
                     application = results['application']
                     patch = results['patch']
                     severity = results['severity']
+                    if severity.lower() == "moderate":
+                        severity = "medium"
+                    severity = severity.lower()
                     publisheddate = results['pub_date']
                     lastModifiedDate = results['lastupdate_date']
                     product = results['product']

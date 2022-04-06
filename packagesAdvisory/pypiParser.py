@@ -23,7 +23,7 @@ class pypi_parser():
 
             dirName = url_name
          
-            with open("pypi/%s.json" % dirName, "w") as outfile:
+            with open("/var/DB/packages/pypi/%s.json" % dirName, "w") as outfile:
                 json.dump(data, outfile)
         except:
             print(f"HTTPError: HTTP Error 404: Not Found : {url}")

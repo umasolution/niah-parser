@@ -186,6 +186,9 @@ class snyk_db():
                 cves = vuln['cves']
                 cweid = vuln['cweid']
                 severity = vuln['severity']
+                if severity.lower() == "moderate":
+                    severity = "medium"
+                severity = severity.upper()
                 score = vuln['score']
                 reference = vuln['reference']
 
@@ -321,7 +324,7 @@ class snyk_db():
                             self.cursor.execute(query)
                             self.connection.commit()
                 else:
-                    data_id = "NIAH-%s" % inc_no
+                    data_id = "NIAH-JAVA-%s" % inc_no
                     data_type = "NOCVE"
 
                     niahId = "NIAH-%s-%s" % (data_type, inc_no)
@@ -449,6 +452,9 @@ class snyk_db():
                 cves = vuln['cves']
                 cweid = vuln['cweid']
                 severity = vuln['severity']
+                if severity.lower() == "moderate":
+                    severity = "medium"
+                severity = severity.upper()
                 score = vuln['score']
                 reference = vuln['reference']
 
@@ -583,7 +589,7 @@ class snyk_db():
                             self.cursor.execute(query)
                             self.connection.commit()
                 else:
-                    data_id = "NIAH-%s" % inc_no
+                    data_id = "NIAH-PHP-%s" % inc_no
                     data_type = "NOCVE"
 
                     niahId = "NIAH-%s-%s" % (data_type, inc_no)
@@ -713,6 +719,9 @@ class snyk_db():
                 cves = vuln['cves']
                 cweid = vuln['cweid']
                 severity = vuln['severity']
+                if severity.lower() == "moderate":
+                    severity = "medium"
+                severity = severity.upper()
                 score = vuln['score']
                 reference = vuln['reference']
 
@@ -847,7 +856,7 @@ class snyk_db():
                             self.cursor.execute(query)
                             self.connection.commit()
                 else:
-                    data_id = "NIAH-%s" % inc_no
+                    data_id = "NIAH-PYTHON-%s" % inc_no
                     data_type = "NOCVE"
 
                     niahId = "NIAH-%s-%s" % (data_type, inc_no)
@@ -977,6 +986,9 @@ class snyk_db():
                 cves = vuln['cves']
                 cweid = vuln['cweid']
                 severity = vuln['severity']
+                if severity.lower() == "moderate":
+                    severity = "medium"
+                severity = severity.upper()
                 score = vuln['score']
                 reference = vuln['reference']
 
@@ -1111,7 +1123,7 @@ class snyk_db():
                             self.cursor.execute(query)
                             self.connection.commit()
                 else:
-                    data_id = "NIAH-%s" % inc_no
+                    data_id = "NIAH-JAVASCRIPT-%s" % inc_no
                     data_type = "NOCVE"
 
                     niahId = "NIAH-%s-%s" % (data_type, inc_no)
@@ -1169,4 +1181,7 @@ if __name__ == "__main__":
     now = datetime.datetime.now()
     date_update = "%s" % now.strftime("%Y-%m-%d %H:%M:%S")
     res = snyk_db()
-    res.snyc_npm(date_update)
+    #res.snyc_npm(date_update)
+    #res.snyc_pip(date_update)
+    #res.snyc_composer(date_update)
+    res.snyc_maven(date_update)

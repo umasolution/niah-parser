@@ -2,7 +2,7 @@ from operator import truediv
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from lib.dateConvert import dateConvert
+from dateConvert import dateConvert
 import requests
 import re
 import json
@@ -88,7 +88,7 @@ class moniMaven():
         
         temp_arr = []
 
-        
+        """
         # level-1
         urls = {}
         urls['urls'] = []
@@ -101,21 +101,25 @@ class moniMaven():
                 url_one = "https://repo1.maven.org/maven2/%s" % tagname
                 urls['urls'].append(url_one)
 
-        out_data = open("maven/level-1.json", "w")
+        out_data = open("/var/DB/packages/maven/level-1.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-1 completed")
-        """
+        
 
         # level-2
-        with open("maven/level-1.json", "r") as f:
+        with open("/var/DB/packages/maven/level-1.json", "r") as f:
             out_data = json.load(f)
 
-        with open("maven/temp_arr.json", "r") as f:
+        with open("/var/DB/packages/maven/temp_arr.json", "r") as f:
             temp_arr = json.load(f)
 
         urls = {}
         urls['urls'] = []
+        total = len(out_data['urls'])
+        i = 0
         for url in out_data['urls']:
+            print("Progress - %s/%s" % (i, total))
+            i = i + 1
             if url not in temp_arr:
                 page_src = self.getPageSource(url)
                 soup = BeautifulSoup(page_src, "html.parser")
@@ -133,24 +137,30 @@ class moniMaven():
                             urls['urls'].append(url_one)
 
                 temp_arr.append(url)
-                out_data = open("maven/temp_arr.json", "w")
+                out_data = open("/var/DB/packages/maven/temp_arr.json", "w")
                 json.dump(temp_arr, out_data, indent=2)
 
 
-        out_data = open("maven/level-2.json", "w")
+        out_data = open("/var/DB/packages/maven/level-2.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-2 completed")
         
+        """
+        
         # level-3
-        with open("maven/level-2.json", "r") as f:
+        with open("/var/DB/packages/maven/level-2.json", "r") as f:
             out_data = json.load(f)
 
-        with open("maven/temp_arr.json", "r") as f:
+        with open("/var/DB/packages/maven/temp_arr.json", "r") as f:
             temp_arr = json.load(f)
 
         urls = {}
         urls['urls'] = []
+        total = len(out_data['urls'])
+        i = 0
         for url in out_data['urls']:
+            print("Progress - %s/%s" % (i, total))
+            i = i + 1
             if url not in temp_arr:
                 page_src = self.getPageSource(url)
                 soup = BeautifulSoup(page_src, "html.parser")
@@ -168,23 +178,24 @@ class moniMaven():
                             urls['urls'].append(url_one)
 
                 temp_arr.append(url)
-                out_data = open("maven/temp_arr.json", "w")
+                out_data = open("/var/DB/packages/maven/temp_arr.json", "w")
                 json.dump(temp_arr, out_data, indent=2)
 
-        out_data = open("maven/level-3.json", "w")
+        out_data = open("/var/DB/packages/maven/level-3.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-3 completed")
         
+        """
         # level-4
-        with open("maven/level-3.json", "r") as f:
+        with open("/var/DB/packages/maven/level-3.json", "r") as f:
             out_data = json.load(f)
 
-        with open("maven/temp_arr.json", "r") as f:
+        with open("/var/DB/packages/maven/temp_arr.json", "r") as f:
             temp_arr = json.load(f)
 
         urls = {}
         urls['urls'] = []
-        for url in out_data['urls']:
+        for url in tqdm(out_data['urls']):
             if url not in temp_arr:
                 page_src = self.getPageSource(url)
                 soup = BeautifulSoup(page_src, "html.parser")
@@ -202,23 +213,23 @@ class moniMaven():
                             urls['urls'].append(url_one)
 
                 temp_arr.append(url)
-                out_data = open("maven/temp_arr.json", "w")
+                out_data = open("/var/DB/packages/maven/temp_arr.json", "w")
                 json.dump(temp_arr, out_data, indent=2)
 
-        out_data = open("maven/level-4.json", "w")
+        out_data = open("/var/DB/packages/maven/level-4.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-4 completed")
 
         # level-5
-        with open("maven/level-4.json", "r") as f:
+        with open("/var/DB/packages/maven/level-4.json", "r") as f:
             out_data = json.load(f)
 
-        with open("maven/temp_arr.json", "r") as f:
+        with open("/var/DB/packages/maven/temp_arr.json", "r") as f:
             temp_arr = json.load(f)
 
         urls = {}
         urls['urls'] = []
-        for url in out_data['urls']:
+        for url in tqdm(out_data['urls']):
             if url not in temp_arr:
                 page_src = self.getPageSource(url)
                 soup = BeautifulSoup(page_src, "html.parser")
@@ -236,23 +247,23 @@ class moniMaven():
                             urls['urls'].append(url_one)
 
                 temp_arr.append(url)
-                out_data = open("maven/temp_arr.json", "w")
+                out_data = open("/var/DB/packages/maven/temp_arr.json", "w")
                 json.dump(temp_arr, out_data, indent=2)
 
-        out_data = open("maven/level-5.json", "w")
+        out_data = open("/var/DB/packages/maven/level-5.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-5 completed")
 
         # level-6
-        with open("maven/level-5.json", "r") as f:
+        with open("/var/DB/packages/maven/level-5.json", "r") as f:
             out_data = json.load(f)
 
-        with open("maven/temp_arr.json", "r") as f:
+        with open("/var/DB/packages/maven/temp_arr.json", "r") as f:
             temp_arr = json.load(f)
 
         urls = {}
         urls['urls'] = []
-        for url in out_data['urls']:
+        for url in tqdm(out_data['urls']):
             if url not in temp_arr:
                 page_src = self.getPageSource(url)
                 soup = BeautifulSoup(page_src, "html.parser")
@@ -270,24 +281,24 @@ class moniMaven():
                             urls['urls'].append(url_one)
 
                 temp_arr.append(url)
-                out_data = open("maven/temp_arr.json", "w")
+                out_data = open("/var/DB/packages/maven/temp_arr.json", "w")
                 json.dump(temp_arr, out_data, indent=2)
 
-        out_data = open("maven/level-6.json", "w")
+        out_data = open("/var/DB/packages/maven/level-6.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-6 completed")
 
 
         # level-7
-        with open("maven/level-6.json", "r") as f:
+        with open("/var/DB/packages/maven/level-6.json", "r") as f:
             out_data = json.load(f)
 
-        with open("maven/temp_arr.json", "r") as f:
+        with open("/var/DB/packages/maven/temp_arr.json", "r") as f:
             temp_arr = json.load(f)
 
         urls = {}
         urls['urls'] = []
-        for url in out_data['urls']:
+        for url in tqdm(out_data['urls']):
             if url not in temp_arr:
                 page_src = self.getPageSource(url)
                 soup = BeautifulSoup(page_src, "html.parser")
@@ -305,10 +316,10 @@ class moniMaven():
                             urls['urls'].append(url_one)
 
                 temp_arr.append(url)
-                out_data = open("maven/temp_arr.json", "w")
+                out_data = open("/var/DB/packages/maven/temp_arr.json", "w")
                 json.dump(temp_arr, out_data, indent=2)
 
-        out_data = open("maven/level-6.json", "w")
+        out_data = open("/var/DB/packages/maven/level-6.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-7 completed")
         """
@@ -317,57 +328,61 @@ class moniMaven():
     def collectdb_json(self, url_one, tagname):
         metadata = {}
         url = "%s/maven-metadata.xml" % (url_one)
-        print(url)
         versions = self.get_json_metadata_json(url)
-        metadata['versions'] = {}
+        if versions:
+            groupId = versions['groupId']
+            artifactId = versions['artifactId']
 
-        if versions['latest']:
-            url = "%s/%s/%s-%s.pom" % (url_one, versions['latest'], tagname, versions['latest'])
-            data = self.get_json_xml(url)
-            metadata['versions'][versions['latest']] = data
+            metadata['versions'] = {}
+            metadata['available_versions'] = versions['all']
 
-            for version in versions['all']:
-                url = "%s/%s/%s-%s.pom" % (url_one, version, tagname, version)
-                data = self.get_json_xml(url)
-                metadata['versions'][version] = data
-
-        else:
-            if len(versions['all']) > 0:
-                url = "%s/%s/%s-%s.pom" % (url_one, versions['all'][0], tagname, versions['all'][0])
+            if versions['latest']:
+                url = "%s/%s/%s-%s.pom" % (url_one, versions['latest'], tagname, versions['latest'])
                 data = self.get_json_xml(url)
                 metadata['versions'][versions['latest']] = data
-                                
-        out_data_2 = open("maven/%s.json" % (tagname), "w")
-        json.dump(metadata, out_data_2, indent=2)
+                """
+                for version in versions['all']:
+                    url = "%s/%s/%s-%s.pom" % (url_one, version, tagname, version)
+                    data = self.get_json_xml(url)
+                    metadata['versions'][version] = data
+                """
+            else:
+                if len(versions['all']) > 0:
+                    url = "%s/%s/%s-%s.pom" % (url_one, versions['all'][0], tagname, versions['all'][0])
+                    data = self.get_json_xml(url)
+                    metadata['versions'][versions['all'][0]] = data
+                                    
+            out_data_2 = open("/var/DB/packages/maven/%s_%s.json" % (groupId, artifactId), "w")
+            json.dump(metadata, out_data_2, indent=2)
       
 
     def get_json_metadata_json(self, url):
         page_src = self.getPageSource(url)
-        print(page_src)
         xml_parser = BeautifulSoup(page_src, "xml")
         
         versions_lists = xml_parser.find_all('version')
-        print(versions_lists)
         if xml_parser.find('latest'):
             latest_version = xml_parser.find('latest').contents[0]
-            print(latest_version)
         else:
             latest_version = ''
 
         versions = {}
-        versions['latest'] = latest_version
-        versions['all'] = []
+        if xml_parser.find('groupId') and xml_parser.find('artifactId'):
+            versions['groupId'] = xml_parser.find('groupId').contents[0]
+            versions['artifactId'] = xml_parser.find('artifactId').contents[0]
+            versions['latest'] = latest_version
+            versions['all'] = []
+        else:
+            return False
 
         for vers in versions_lists:
             version = vers.text
             versions['all'].append(version)
 
-        print(versions)
         return versions
 
 
     def get_json_xml(self, url):
-        print(url)
         page_src = self.getPageSource(url)
         xml_parser = BeautifulSoup(page_src, "xml")
 
@@ -380,6 +395,7 @@ class moniMaven():
         if xml_parser.find('artifactId'):
             artifactId = xml_parser.find('artifactId').contents[0]
             results['artifactId'] = artifactId
+
         try:
             if xml_parser.find('description'):
                 description = xml_parser.find('description').contents[0]
@@ -387,8 +403,12 @@ class moniMaven():
         except:
             results['description'] = ''
         if xml_parser.find('name'):
-            name = xml_parser.find('name').contents[0]
-            results['name'] = name
+            try:
+                name = xml_parser.find('name').contents[0]
+                results['name'] = name
+            except:
+                name = ''
+                results['name'] = name
         if xml_parser.find('packaging'):
             packaging = xml_parser.find('packaging').contents[0]
             results['packaging'] = packaging
