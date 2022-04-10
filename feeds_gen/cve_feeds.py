@@ -253,7 +253,7 @@ class cveFeed():
         pkg_vnd_results = {}
         
         print("[ OK ] vuln Table Sync started")
-        cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab where data_id='CVE-2017-7525' ORDER BY revision DESC"
+        cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab ORDER BY revision DESC"
         #cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab where data_id LIKE '%%CVE-2021-%%' ORDER BY revision DESC"
 
         self.cursor.execute(cmd)
