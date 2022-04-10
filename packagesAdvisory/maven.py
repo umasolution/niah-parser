@@ -65,6 +65,7 @@ class moniMaven():
             return html_source
 
     def getPageSource(self, url):
+        time.sleep(0.3)
         response = requests.get(url)
         return response.text
 
@@ -144,8 +145,7 @@ class moniMaven():
         out_data = open("/var/DB/packages/maven/level-2.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-2 completed")
-        
-        """
+    
         
         # level-3
         with open("/var/DB/packages/maven/level-2.json", "r") as f:
@@ -185,7 +185,7 @@ class moniMaven():
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-3 completed")
         
-        """
+        
         # level-4
         with open("/var/DB/packages/maven/level-3.json", "r") as f:
             out_data = json.load(f)
@@ -195,7 +195,11 @@ class moniMaven():
 
         urls = {}
         urls['urls'] = []
-        for url in tqdm(out_data['urls']):
+        total = len(out_data['urls'])
+        i = 0
+        for url in out_data['urls']:
+            print("Progress - %s/%s" % (i, total))
+            i = i + 1
             if url not in temp_arr:
                 page_src = self.getPageSource(url)
                 soup = BeautifulSoup(page_src, "html.parser")
@@ -220,6 +224,7 @@ class moniMaven():
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-4 completed")
 
+        
         # level-5
         with open("/var/DB/packages/maven/level-4.json", "r") as f:
             out_data = json.load(f)
@@ -229,7 +234,11 @@ class moniMaven():
 
         urls = {}
         urls['urls'] = []
-        for url in tqdm(out_data['urls']):
+        total = len(out_data['urls'])
+        i = 0
+        for url in out_data['urls']:
+            print("Progress - %s/%s" % (i, total))
+            i = i + 1
             if url not in temp_arr:
                 page_src = self.getPageSource(url)
                 soup = BeautifulSoup(page_src, "html.parser")
@@ -254,6 +263,7 @@ class moniMaven():
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-5 completed")
 
+        
         # level-6
         with open("/var/DB/packages/maven/level-5.json", "r") as f:
             out_data = json.load(f)
@@ -263,7 +273,11 @@ class moniMaven():
 
         urls = {}
         urls['urls'] = []
-        for url in tqdm(out_data['urls']):
+        total = len(out_data['urls'])
+        i = 0
+        for url in out_data['urls']:
+            print("Progress - %s/%s" % (i, total))
+            i = i + 1
             if url not in temp_arr:
                 page_src = self.getPageSource(url)
                 soup = BeautifulSoup(page_src, "html.parser")
@@ -288,6 +302,7 @@ class moniMaven():
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-6 completed")
 
+        """
 
         # level-7
         with open("/var/DB/packages/maven/level-6.json", "r") as f:
@@ -298,7 +313,11 @@ class moniMaven():
 
         urls = {}
         urls['urls'] = []
-        for url in tqdm(out_data['urls']):
+        total = len(out_data['urls'])
+        i = 0
+        for url in out_data['urls']:
+            print("Progress - %s/%s" % (i, total))
+            i = i + 1
             if url not in temp_arr:
                 page_src = self.getPageSource(url)
                 soup = BeautifulSoup(page_src, "html.parser")
@@ -319,10 +338,10 @@ class moniMaven():
                 out_data = open("/var/DB/packages/maven/temp_arr.json", "w")
                 json.dump(temp_arr, out_data, indent=2)
 
-        out_data = open("/var/DB/packages/maven/level-6.json", "w")
+        out_data = open("/var/DB/packages/maven/level-7.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-7 completed")
-        """
+        
 
 
     def collectdb_json(self, url_one, tagname):

@@ -226,9 +226,16 @@ class GHSAdvisory():
                     print("[ OK ] Application not found")
                     sys.exit(1)
 
+                
+                application = re.sub(r'\n', '', str(application))
+                application = re.sub(r'\s+', '', str(application))
+
                 if re.findall(r'\((.*)\)', str(application)):
                     application = re.findall(r'\((.*)\)', str(application))[0]
+                elif re.findall(r'\(\n\s+(.*)\n\n\)', str(application)):
+                    application = re.findall(r'\(\n\s+(.*)\n\n\)', str(application))[0]
 
+                application = application.lower()
 
             if 'Affected versions' in str(div):
                 if div.findAll('div', {'class':'text-bold text-gray-dark f4'}):
@@ -389,7 +396,8 @@ class GHSAdvisory():
 
         i = 0
         while True:
-            time.sleep(20)
+            print(i)
+            time.sleep(5)
             if self.daily:
                 if i == 1:
                     break
@@ -498,7 +506,6 @@ class GHSAdvisory():
                         revision = '0'
                     
                     if pcheck: 
-                        print("in check product")
                         query = "INSERT INTO product_reference_tab(niah_product_id, product, vendor, type, advisory, data, revision) values('%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (niah_product_id, product, vendor, type, advisory, json.dumps(res), revision)
                         self.cursor.execute(query)
                         self.connection.commit()
@@ -619,7 +626,6 @@ class GHSAdvisory():
                                 self.niahid_entry[niahId]['lastmodifieddate'] = lastModifiedDate
 
                             if check:
-                                print("in check vuln")
                                 query = "INSERT INTO vuln_tab(niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision)VALUES('{niahId}', '{data_type}', '{data_id}', '{cwe_ids}', '{references}', '{description}', '{baseMetricV3}', '{baseMetricV2}', '{publishedDate}', '{lastModifiedDate}', '{affected_products_versions}', '1', 'indev', '{revision}');".format(niahId=niahId, data_type=data_type, data_id=data_id, cwe_ids=json.dumps(cwe_ids), references=json.dumps(references), description=json.dumps(description), baseMetricV2=json.dumps(baseMetricV2), baseMetricV3=json.dumps(baseMetricV3), publishedDate=publisheddate, lastModifiedDate=lastModifiedDate, affected_products_versions=json.dumps(affected_products_versions), revision=revision)
                                 self.cursor.execute(query)
                                 self.connection.commit()
@@ -678,7 +684,6 @@ class GHSAdvisory():
                             self.niahid_entry[niahId]['lastmodifieddate'] = lastModifiedDate
 
                         if check:
-                            print("in check vuln")
                             query = "INSERT INTO vuln_tab(niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision)VALUES('{niahId}', '{data_type}', '{data_id}', '{cwe_ids}', '{references}', '{description}', '{baseMetricV3}', '{baseMetricV2}', '{publishedDate}', '{lastModifiedDate}', '{affected_products_versions}', '1', 'indev', '{revision}');".format(niahId=niahId, data_type=data_type, data_id=data_id, cwe_ids=json.dumps(cwe_ids), references=json.dumps(references), description=json.dumps(description), baseMetricV2=json.dumps(baseMetricV2), baseMetricV3=json.dumps(baseMetricV3), publishedDate=publisheddate, lastModifiedDate=lastModifiedDate, affected_products_versions=json.dumps(affected_products_versions), revision=revision)
                             self.cursor.execute(query)
                             self.connection.commit()
