@@ -418,7 +418,6 @@ class moniUbuntuDB():
                                 refe['data'].append(reference)
                                 desc1 = fetchData[0][2]
                                 desc = fetchData[0][2]
-                                desc['ubuntu'] = summary
                                 try:
                                     desc['ubuntu'] = summary
                                 except:
