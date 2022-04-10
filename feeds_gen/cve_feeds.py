@@ -76,29 +76,44 @@ class cveFeed():
         
         sys.setrecursionlimit(100000)
 
-    def getCWEText(self, cwe):
-        query = "select cwe_str from cwe_map where cwe_no='%s'" % cwe
-        self.cursor.execute(query)
-        fetchData = self.cursor.fetchall()
+    def get_uniq(self, data):
+        details = []
+        for d in data:
+            if d not in details:
+                details.append(d)
 
-        if len(fetchData) > 0:
-            return fetchData[0][0]
-        else:
-            cwe_text = ''
 
-            cweno = re.sub(r'CWE-', '', str(cwe), re.IGNORECASE)
-            url = "https://cwe.mitre.org/data/definitions/%s.html" % cweno
-            page = requests.get(url)
-            soup = BeautifulSoup(page.content, "html.parser")
+    def getCWEText(self, cwes):
+        cwes_text = []
+        try:
+            for cwe in cwes.split(','):
+                cwe = cwe.strip()
+                query = "select cwe_str from cwe_map where cwe_no='%s'" % cwe
+                self.cursor.execute(query)
+                fetchData = self.cursor.fetchall()
 
-            if soup.findAll('h2'):
-                cwe_text = soup.findAll('h2')[0].cwe_text
+                if len(fetchData) > 0:
+                    cwe_text = fetchData[0][0]
+                else:
+                    cwe_text = ''
 
-            query = "insert into cwe_map(cwe_no, cwe_str) values('%s', '%s')" % (cwe, cwe_text)
-            self.cursor.execute(query)
-            self.connection.commit()
+                    cweno = re.sub(r'CWE-', '', str(cwe), re.IGNORECASE)
+                    url = "https://cwe.mitre.org/data/definitions/%s.html" % cweno
+                    page = requests.get(url)
+                    soup = BeautifulSoup(page.content, "html.parser")
 
-            return cwe_text
+                    if soup.findAll('h2'):
+                        cwe_text = soup.findAll('h2')[0].cwe_text
+
+                    query = "insert into cwe_map(cwe_no, cwe_str) values('%s', '%s')" % (cwe, cwe_text)
+                    self.cursor.execute(query)
+                    self.connection.commit()
+
+                cwes_text.append(cwe_text)
+            
+            return ','.join(cwes_text)
+        except:
+            return cwes
 
     def get_versions_details(self, affected_products_versions):
         versions_completed = []

@@ -419,6 +419,10 @@ class moniUbuntuDB():
                                 desc1 = fetchData[0][2]
                                 desc = fetchData[0][2]
                                 desc['ubuntu'] = summary
+                                try:
+                                    desc['ubuntu'] = summary
+                                except:
+                                    desc = desc1
                                 basemetricv3_data = fetchData[0][3]
                                 basemetricv2_data = fetchData[0][4]
 
@@ -691,7 +695,7 @@ class moniUbuntuDB():
                                     try:
                                         desc['ubuntu'] = name
                                     except:
-                                        pass
+                                        desc = desc1
                                     basemetricv3_data = fetchData[0][3]
                                     basemetricv2_data = fetchData[0][4]
 
