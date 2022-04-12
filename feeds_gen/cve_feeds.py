@@ -272,8 +272,8 @@ class cveFeed():
         #cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab where data_id LIKE '%%CVE-2021-%%' ORDER BY revision DESC"
 
         self.cursor.execute(cmd)
-
-        for row in tqdm(self.cursor.fetchall()):
+        fetchData = self.cursor.fetchall()
+        for row in tqdm(fetchData):
             niahid = row[0]
             if niahid not in complete_res:
                 complete_res.append(niahid)
@@ -476,6 +476,8 @@ class cveFeed():
                         retRes[cve_id]['CVSS20']['baseSeverity'] = ''
 
 
+        fetchData = ''
+
         query = "select reference, application, cve_id from pocreference_db"
         self.cursor.execute(query)
         fetchData = self.cursor.fetchall();
@@ -502,6 +504,7 @@ class cveFeed():
         print("[ OK ] CVEs feed generation started")
         res_db = {}
         res_tables = []
+        fetchData = ''
 
         for cve_id in retRes:
             with open("/var/DB/CVEs/%s.json" % (cve_id), "w") as outfile:
@@ -600,6 +603,7 @@ class cveFeed():
         with open("/var/DB/feeds/nvd/vuln_feed.json", "w") as f:
             json.dump(res_tables, f, indent = 2)
 
+        res_tables = ''
         # Vulnerability DB Generated (Year Wise)
         for year in res_db:
             with open("/var/DB/feeds/nvd/%s_db.json" % year, "w") as f:
@@ -612,6 +616,8 @@ class cveFeed():
 
             with open("/var/DB/feeds/nvd/%s.json" % year, "w") as f:
                 json.dump(r_results, f, indent = 2)
+
+        r_results = ''
 
         print("[ OK ] languages, plugins and platform feeds generation started")
         for app_type in results:
@@ -648,6 +654,7 @@ class cveFeed():
                 with open("/var/DB/feeds/%s/%s.json" % (app_type, app_type), "w") as f:
                     json.dump(res_data, f, indent = 2)
 
+            
             if app_type == "plugin" or app_type == "language" or app_type == "platform":
                 app_type_lists = {}
                 app_type_lists['publishDate'] = date_update
