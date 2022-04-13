@@ -255,369 +255,376 @@ class cveFeed():
 
 
     def nvdLoad(self, date_update):
-        complete_res = []
+        year_number = datetime.datetime.now().year
+        res_tables = []
         
-        retRes = {}
-        vulns = []
-
         results = {}
         results['language'] = {}
         results['plugin'] = {}
         results['platform'] = {}
 
-        pkg_vnd_results = {}
+        i = 0
+
+        while year_number >= 2001: 
+            complete_res = []
+
+            retRes = {}
+            vulns = []
+
+            pkg_vnd_results = {}
+            
+            print("[ OK ] vuln Table Sync started")
+            #cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab ORDER BY revision DESC"
+            cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab where data_id LIKE '%%CVE-%s-%%' ORDER BY revision DESC" % year_number
+
+            self.cursor.execute(cmd)
+            fetchData = self.cursor.fetchall()
+            for row in tqdm(fetchData):
+                niahid = row[0]
+                if niahid not in complete_res:
+                    complete_res.append(niahid)
+                    data_type = row[1]
+                    data_id = row[2]
+                    cve_id = data_id
+                    if niahid not in vulns:
+                        vulns.append(niahid)
+                        cwe_data = row[3]
+                        reference_data = row[4]
+                        description = row[5]
+                        basemetricv3_data = row[6]
+                        basemetricv2_data = row[7]
+                        publisheddate = row[8]
+                        lastmodifieddate = row[9]
+                        affected_products_versions = row[10]
+                        status = row[11]
+                        vuln_status = row[12]
+                        revision = row[13]
         
-        print("[ OK ] vuln Table Sync started")
-        cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab ORDER BY revision DESC"
-        #cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab where data_id LIKE '%%CVE-2021-%%' ORDER BY revision DESC"
+                        details = self.get_versions_details(affected_products_versions)
+                        if cve_id not in retRes:
+                            retRes[cve_id] = {}
+                            retRes[cve_id]['niahid'] = niahid
+                            retRes[cve_id]['data_type'] = data_type
+                            retRes[cve_id]['data_id'] = data_id
+                            retRes[cve_id]['cve_id'] = cve_id
+                            retRes[cve_id]['data_type'] = data_type
+                            retRes[cve_id]['data_id'] = data_id
+                            retRes[cve_id]['CVE ID'] = cve_id
+                            retRes[cve_id]['Products'] = {}
+                            retRes[cve_id]['Products']['data'] = []
 
-        self.cursor.execute(cmd)
-        fetchData = self.cursor.fetchall()
-        for row in tqdm(fetchData):
-            niahid = row[0]
-            if niahid not in complete_res:
-                complete_res.append(niahid)
-                data_type = row[1]
-                data_id = row[2]
-                cve_id = data_id
-                if niahid not in vulns:
-                    vulns.append(niahid)
-                    cwe_data = row[3]
-                    reference_data = row[4]
-                    description = row[5]
-                    basemetricv3_data = row[6]
-                    basemetricv2_data = row[7]
-                    publisheddate = row[8]
-                    lastmodifieddate = row[9]
-                    affected_products_versions = row[10]
-                    status = row[11]
-                    vuln_status = row[12]
-                    revision = row[13]
-    
-                    details = self.get_versions_details(affected_products_versions)
-                    if cve_id not in retRes:
-                        retRes[cve_id] = {}
-                        retRes[cve_id]['niahid'] = niahid
-                        retRes[cve_id]['data_type'] = data_type
-                        retRes[cve_id]['data_id'] = data_id
-                        retRes[cve_id]['cve_id'] = cve_id
-                        retRes[cve_id]['data_type'] = data_type
-                        retRes[cve_id]['data_id'] = data_id
-                        retRes[cve_id]['CVE ID'] = cve_id
-                        retRes[cve_id]['Products'] = {}
-                        retRes[cve_id]['Products']['data'] = []
-
-                        retRes[cve_id]['publishedDate'] = publisheddate
-                        retRes[cve_id]['lastModifiedDate'] = lastmodifieddate
-                    
-                    for detail in details:
-                        niah_product_id = detail['niah_product_id']
-                        niah_version_id = detail['niah_version_id']
-                        product = detail['product']
-                        if 'vendor' in detail:
-                            vendor = detail['vendor']
-                        else:
-                            vendor = ''
-                        appVendor = ''
-                        if 'part' in detail:
-                            part = detail['part']
-                        else:
-                            part = ''
-                        if 'advisory' in detail:
-                            advisory = detail['advisory']
-                        else:
-                            advisory = ''
-                        if 'type' in detail:
-                            type = detail['type']
-                        else:
-                            type = ''
-
-                        if 'language' in detail:
-                            if 'library_advisory' not in retRes[cve_id]:
-                                retRes[cve_id]['library_advisory'] = {}
-                                retRes[cve_id]['library_advisory']['title'] = "Library Advisory"
-                                retRes[cve_id]['library_advisory']['data'] = []
-
-                        if 'plugin' in detail:
-                            if 'plugin_advisory' not in retRes[cve_id]:
-                                retRes[cve_id]['plugin_advisory'] = {}
-                                retRes[cve_id]['plugin_advisory']['title'] = "Plugin Advisory"
-                                retRes[cve_id]['plugin_advisory']['data'] = []
-
-                        if type == "platform":
-                            if 'platform_advisory' not in retRes[cve_id]:
-                                retRes[cve_id]['platform_advisory'] = {}
-                                retRes[cve_id]['platform_advisory']['title'] = "Platform Advisory"
-                                retRes[cve_id]['platform_advisory']['data'] = []
-
-                        for det in detail['affectedversions']:
-                            version = det['version']
-                            patch = det['patch']
-
-                            res = {}
-                            res['product'] = product
-                            res['vendor'] = vendor   
-                            res['version'] = version
-                            res['patch'] = patch
-                            res['type'] = part
-                            res['appVendor'] = appVendor
-                            res['niah_version_id'] = niah_version_id
-                            res['niah_product_id'] = niah_product_id
-                            
+                            retRes[cve_id]['publishedDate'] = publisheddate
+                            retRes[cve_id]['lastModifiedDate'] = lastmodifieddate
+                        
+                        for detail in details:
+                            niah_product_id = detail['niah_product_id']
+                            niah_version_id = detail['niah_version_id']
+                            product = detail['product']
+                            if 'vendor' in detail:
+                                vendor = detail['vendor']
+                            else:
+                                vendor = ''
+                            appVendor = ''
+                            if 'part' in detail:
+                                part = detail['part']
+                            else:
+                                part = ''
+                            if 'advisory' in detail:
+                                advisory = detail['advisory']
+                            else:
+                                advisory = ''
+                            if 'type' in detail:
+                                type = detail['type']
+                            else:
+                                type = ''
 
                             if 'language' in detail:
-                                res['language'] = detail['language']
-                                retRes[cve_id]['library_advisory']['data'].append(res)
+                                if 'library_advisory' not in retRes[cve_id]:
+                                    retRes[cve_id]['library_advisory'] = {}
+                                    retRes[cve_id]['library_advisory']['title'] = "Library Advisory"
+                                    retRes[cve_id]['library_advisory']['data'] = []
 
-                                if detail['language'] not in results['language']:
-                                    results['language'][detail['language']] = {}
-                                if cve_id not in results['language'][detail['language']]:
-                                    results['language'][detail['language']][cve_id] = []
-                                if res not in results['language'][detail['language']][cve_id]:
-                                    results['language'][detail['language']][cve_id].append(res)
-                            
                             if 'plugin' in detail:
-                                res['plugin'] = detail['plugin']
-                                retRes[cve_id]['plugin_advisory']['data'].append(res)
-
-                                if detail['plugin'] not in results['plugin']:
-                                    results['plugin'][detail['plugin']] = {}
-                                if cve_id not in results['plugin'][detail['plugin']]:
-                                    results['plugin'][detail['plugin']][cve_id] = []
-
-                                if res not in results['plugin'][detail['plugin']][cve_id]:
-                                    results['plugin'][detail['plugin']][cve_id].append(res)
+                                if 'plugin_advisory' not in retRes[cve_id]:
+                                    retRes[cve_id]['plugin_advisory'] = {}
+                                    retRes[cve_id]['plugin_advisory']['title'] = "Plugin Advisory"
+                                    retRes[cve_id]['plugin_advisory']['data'] = []
 
                             if type == "platform":
-                                if 'advisoryid' in detail:
-                                    res['advisoryid'] = detail['advisoryid']
-                                res['platform'] = detail['platform']
+                                if 'platform_advisory' not in retRes[cve_id]:
+                                    retRes[cve_id]['platform_advisory'] = {}
+                                    retRes[cve_id]['platform_advisory']['title'] = "Platform Advisory"
+                                    retRes[cve_id]['platform_advisory']['data'] = []
+
+                            for det in detail['affectedversions']:
+                                version = det['version']
+                                patch = det['patch']
+
+                                res = {}
+                                res['product'] = product
+                                res['vendor'] = vendor   
+                                res['version'] = version
+                                res['patch'] = patch
+                                res['type'] = part
+                                res['appVendor'] = appVendor
+                                res['niah_version_id'] = niah_version_id
+                                res['niah_product_id'] = niah_product_id
                                 
-                                if advisory == "ubuntu":
-                                    reference = "https://ubuntu.com/security/%s" % cve_id.upper()
-                                    res['family'] = "Ubuntu"
-                                    res['Reference'] = reference
-                                    retRes[cve_id]['platform_advisory']['data'].append(res)
-                                    if 'ubuntu' not in results['platform']:
-                                        results['platform']['ubuntu'] = {}
-                                    if cve_id not in results['platform']['ubuntu']:
-                                        results['platform']['ubuntu'][cve_id] = []
-                                    if res not in results['platform']['ubuntu'][cve_id]:
-                                        results['platform']['ubuntu'][cve_id].append(res)
+
+                                if 'language' in detail:
+                                    res['language'] = detail['language']
+                                    retRes[cve_id]['library_advisory']['data'].append(res)
+
+                                    if detail['language'] not in results['language']:
+                                        results['language'][detail['language']] = {}
+                                    if cve_id not in results['language'][detail['language']]:
+                                        results['language'][detail['language']][cve_id] = []
+                                    if res not in results['language'][detail['language']][cve_id]:
+                                        results['language'][detail['language']][cve_id].append(res)
+                                
+                                if 'plugin' in detail:
+                                    res['plugin'] = detail['plugin']
+                                    retRes[cve_id]['plugin_advisory']['data'].append(res)
+
+                                    if detail['plugin'] not in results['plugin']:
+                                        results['plugin'][detail['plugin']] = {}
+                                    if cve_id not in results['plugin'][detail['plugin']]:
+                                        results['plugin'][detail['plugin']][cve_id] = []
+
+                                    if res not in results['plugin'][detail['plugin']][cve_id]:
+                                        results['plugin'][detail['plugin']][cve_id].append(res)
+
+                                if type == "platform":
+                                    if 'advisoryid' in detail:
+                                        res['advisoryid'] = detail['advisoryid']
+                                    res['platform'] = detail['platform']
+                                    
+                                    if advisory == "ubuntu":
+                                        reference = "https://ubuntu.com/security/%s" % cve_id.upper()
+                                        res['family'] = "Ubuntu"
+                                        res['Reference'] = reference
+                                        retRes[cve_id]['platform_advisory']['data'].append(res)
+                                        if 'ubuntu' not in results['platform']:
+                                            results['platform']['ubuntu'] = {}
+                                        if cve_id not in results['platform']['ubuntu']:
+                                            results['platform']['ubuntu'][cve_id] = []
+                                        if res not in results['platform']['ubuntu'][cve_id]:
+                                            results['platform']['ubuntu'][cve_id].append(res)
 
 
-                                if advisory == "debian":
-                                    reference = "https://security-tracker.debian.org/tracker/%s" % cve_id.upper()
-                                    res['family'] = "Debian"
-                                    res['Reference'] = reference
-                                    retRes[cve_id]['platform_advisory']['data'].append(res)
-                                    if 'debian' not in results['platform']:
-                                        results['platform']['debian'] = {}
-                                    if cve_id not in results['platform']['debian']:
-                                        results['platform']['debian'][cve_id] = []
-                                    if res not in results['platform']['debian'][cve_id]:
-                                        results['platform']['debian'][cve_id].append(res)
-                            
-                            retRes[cve_id]['Products']['data'].append(res)
+                                    if advisory == "debian":
+                                        reference = "https://security-tracker.debian.org/tracker/%s" % cve_id.upper()
+                                        res['family'] = "Debian"
+                                        res['Reference'] = reference
+                                        retRes[cve_id]['platform_advisory']['data'].append(res)
+                                        if 'debian' not in results['platform']:
+                                            results['platform']['debian'] = {}
+                                        if cve_id not in results['platform']['debian']:
+                                            results['platform']['debian'][cve_id] = []
+                                        if res not in results['platform']['debian'][cve_id]:
+                                            results['platform']['debian'][cve_id].append(res)
+                                
+                                retRes[cve_id]['Products']['data'].append(res)
 
-                    if 'data' in cwe_data:
-                        retRes[cve_id]['CWE'] = ','.join(self.uniq_cwe(cwe_data['data']))
-                    else:
-                        retRes[cve_id]['CWE'] = ''
-                    if 'nvd' in description:
-                        retRes[cve_id]['description'] = description['nvd']
-                    else:
-                        retRes[cve_id]['description'] = ''
-                    
-                    retRes[cve_id]['CVSS30'] = {}
-                    if 'attackVector' in basemetricv3_data:
-                        retRes[cve_id]['CVSS30']['attackVector'] = basemetricv3_data['attackVector']
-                    else:
-                        retRes[cve_id]['CVSS30']['attackVector'] = ''
-                    if 'vectorString' in basemetricv3_data:
-                        retRes[cve_id]['CVSS30']['vectorString'] = basemetricv3_data['vectorString']
-                    else:
-                        retRes[cve_id]['CVSS30']['vectorString'] = ''
-                    if 'exploitabilityScore' in basemetricv3_data:
-                        retRes[cve_id]['CVSS30']['exploitabilityScore'] = basemetricv3_data['exploitabilityScore']
-                    else:
-                        retRes[cve_id]['CVSS30']['exploitabilityScore'] = ''
-                    if 'baseScore' in basemetricv3_data:
-                        retRes[cve_id]['CVSS30']['baseScore'] = basemetricv3_data['baseScore']
-                    else:
-                        retRes[cve_id]['CVSS30']['baseScore'] = ''
-                    if 'baseSeverity' in basemetricv3_data:
-                        retRes[cve_id]['CVSS30']['baseSeverity'] = basemetricv3_data['baseSeverity']
-                    else:
-                        retRes[cve_id]['CVSS30']['baseSeverity'] = ''
+                        if 'data' in cwe_data:
+                            retRes[cve_id]['CWE'] = ','.join(self.uniq_cwe(cwe_data['data']))
+                        else:
+                            retRes[cve_id]['CWE'] = ''
+                        if 'nvd' in description:
+                            retRes[cve_id]['description'] = description['nvd']
+                        else:
+                            retRes[cve_id]['description'] = ''
+                        
+                        retRes[cve_id]['CVSS30'] = {}
+                        if 'attackVector' in basemetricv3_data:
+                            retRes[cve_id]['CVSS30']['attackVector'] = basemetricv3_data['attackVector']
+                        else:
+                            retRes[cve_id]['CVSS30']['attackVector'] = ''
+                        if 'vectorString' in basemetricv3_data:
+                            retRes[cve_id]['CVSS30']['vectorString'] = basemetricv3_data['vectorString']
+                        else:
+                            retRes[cve_id]['CVSS30']['vectorString'] = ''
+                        if 'exploitabilityScore' in basemetricv3_data:
+                            retRes[cve_id]['CVSS30']['exploitabilityScore'] = basemetricv3_data['exploitabilityScore']
+                        else:
+                            retRes[cve_id]['CVSS30']['exploitabilityScore'] = ''
+                        if 'baseScore' in basemetricv3_data:
+                            retRes[cve_id]['CVSS30']['baseScore'] = basemetricv3_data['baseScore']
+                        else:
+                            retRes[cve_id]['CVSS30']['baseScore'] = ''
+                        if 'baseSeverity' in basemetricv3_data:
+                            retRes[cve_id]['CVSS30']['baseSeverity'] = basemetricv3_data['baseSeverity']
+                        else:
+                            retRes[cve_id]['CVSS30']['baseSeverity'] = ''
 
-                    retRes[cve_id]['Reference'] = ','.join(reference_data['data'])
+                        retRes[cve_id]['Reference'] = ','.join(reference_data['data'])
 
-                    retRes[cve_id]['CVSS20'] = {}
-                    if 'accessVector' in basemetricv2_data:
-                        retRes[cve_id]['CVSS20']['attackVector'] = basemetricv2_data['accessVector']
-                    else:
-                        retRes[cve_id]['CVSS20']['attackVector'] = ''
-                    if 'vectorString' in basemetricv2_data:
-                        retRes[cve_id]['CVSS20']['vectorString'] = basemetricv2_data['vectorString']
-                    else:
-                        retRes[cve_id]['CVSS20']['vectorString'] = ''
-                    if 'exploitabilityScore' in basemetricv2_data:
-                        retRes[cve_id]['CVSS20']['exploitabilityScore'] = basemetricv2_data['exploitabilityScore']
-                    else:
-                        retRes[cve_id]['CVSS20']['exploitabilityScore'] = ''
-                    if 'baseScore' in basemetricv2_data:
-                        retRes[cve_id]['CVSS20']['baseScore'] = basemetricv2_data['baseScore']
-                    else:
-                        retRes[cve_id]['CVSS20']['baseScore'] = ''
-                    if 'severity' in basemetricv2_data:
-                        retRes[cve_id]['CVSS20']['baseSeverity'] = basemetricv2_data['severity']
-                    else:
-                        retRes[cve_id]['CVSS20']['baseSeverity'] = ''
+                        retRes[cve_id]['CVSS20'] = {}
+                        if 'accessVector' in basemetricv2_data:
+                            retRes[cve_id]['CVSS20']['attackVector'] = basemetricv2_data['accessVector']
+                        else:
+                            retRes[cve_id]['CVSS20']['attackVector'] = ''
+                        if 'vectorString' in basemetricv2_data:
+                            retRes[cve_id]['CVSS20']['vectorString'] = basemetricv2_data['vectorString']
+                        else:
+                            retRes[cve_id]['CVSS20']['vectorString'] = ''
+                        if 'exploitabilityScore' in basemetricv2_data:
+                            retRes[cve_id]['CVSS20']['exploitabilityScore'] = basemetricv2_data['exploitabilityScore']
+                        else:
+                            retRes[cve_id]['CVSS20']['exploitabilityScore'] = ''
+                        if 'baseScore' in basemetricv2_data:
+                            retRes[cve_id]['CVSS20']['baseScore'] = basemetricv2_data['baseScore']
+                        else:
+                            retRes[cve_id]['CVSS20']['baseScore'] = ''
+                        if 'severity' in basemetricv2_data:
+                            retRes[cve_id]['CVSS20']['baseSeverity'] = basemetricv2_data['severity']
+                        else:
+                            retRes[cve_id]['CVSS20']['baseSeverity'] = ''
+        
+            complete_res = []
+
+            query = "select reference, application, cve_id from pocreference_db where cve_id LIKE '%%CVE-%s-%%'" % year_number
+            self.cursor.execute(query)
+            fetchData = self.cursor.fetchall();
+
+            print("[ OK ] PoC Table Sync started")
+
+            if len(fetchData) > 0:
+                for data in tqdm(fetchData):
+                    reference = data[0]
+                    application = data[1]
+                    cve_id = data[2]
+
+                    if cve_id in retRes:
+                        if 'Exploits' not in retRes[cve_id]:
+                            retRes[cve_id]['Exploits'] = []
+
+                        res = {}
+                        res['Advisory'] = application 
+                        res['Reference'] = reference
+
+                        if res not in retRes[cve_id]['Exploits']:
+                            retRes[cve_id]['Exploits'].append(res)
 
 
-        fetchData = ''
+            print("[ OK ] CVEs feed generation started")
+            res_db = {}
+            fetchData = ''
 
-        query = "select reference, application, cve_id from pocreference_db"
-        self.cursor.execute(query)
-        fetchData = self.cursor.fetchall();
+            for cve_id in retRes:
+                with open("/var/DB/CVEs/%s.json" % (cve_id), "w") as outfile:
+                    json.dump(retRes[cve_id], outfile, indent = 2)
 
-        print("[ OK ] PoC Table Sync started")
+                data_id = retRes[cve_id]['data_id']
+                data_type = retRes[cve_id]['data_type']
 
-        if len(fetchData) > 0:
-            for data in tqdm(fetchData):
-                reference = data[0]
-                application = data[1]
-                cve_id = data[2]
+                if data_type == "CVE":
+                    year = data_id.split("-")[1]
+                else:
+                    year = publisheddate.split("-")[0]
 
-                if cve_id in retRes:
-                    if 'Exploits' not in retRes[cve_id]:
-                        retRes[cve_id]['Exploits'] = []
+                if year not in res_db:
+                    res_db[year] = {}
 
-                    res = {}
-                    res['Advisory'] = application 
-                    res['Reference'] = reference
+                if cve_id not in res_db[year]:
+                    res_db[year][cve_id] = {}
 
-                    if res not in retRes[cve_id]['Exploits']:
-                        retRes[cve_id]['Exploits'].append(res)
+                res_tab = {}
+                res_tab['year'] = year
+                res_tab['vulnerability'] = cve_id
+                res_tab['cve_id'] = cve_id
+                res_tab['niahid'] = retRes[cve_id]['niahid']
+                res_tab['cwe'] = retRes[cve_id]['CWE'] 
+                res_tab['products'] = []
+                res_tab['vendors'] = []    
+                for pkg in retRes[cve_id]['Products']['data']:
+                    if pkg['product'] not in res_tab['products']:
+                        res_tab['products'].append(pkg['product'])
+                    if pkg['vendor'] not in  res_tab['vendors']:
+                        res_tab['vendors'].append(pkg['vendor'])
+                    if 'language' in pkg:
+                        res_tab['language'] = pkg['language']
+                    if 'plugin' in pkg:
+                        res_tab['plugin'] = pkg['plugin']
+                    if 'family' in pkg:
+                        res_tab['family'] = pkg['family']
+                    if 'type' in pkg:
+                        res_tab['part'] = pkg['type']
 
-        print("[ OK ] CVEs feed generation started")
-        res_db = {}
-        res_tables = []
-        fetchData = ''
+                res_db[year][cve_id]['products'] = retRes[cve_id]['Products']['data']
+                res_db[year][cve_id]['niahid'] = retRes[cve_id]['niahid']
+                res_db[year][cve_id]['cve_id'] = cve_id                    
+                res_db[year][cve_id]['application'] = application                   
+                res_db[year][cve_id]['reference'] = retRes[cve_id]['Reference']                    
+                res_db[year][cve_id]['cwe_str'] = self.getCWEText(retRes[cve_id]['CWE'])                   
+                res_db[year][cve_id]['publishedDate'] = retRes[cve_id]['publishedDate']                   
+                res_db[year][cve_id]['lastModifiedDate'] = retRes[cve_id]['lastModifiedDate']                   
+                res_db[year][cve_id]['description'] = retRes[cve_id]['description']                  
+                if 'Exploits' in retRes[cve_id]:
+                    res_db[year][cve_id]['exploits'] = self.get_exploit_str(retRes[cve_id]['Exploits'])
+                else:
+                    res_db[year][cve_id]['exploits'] = ''                         
+                res_db[year][cve_id]['cwe_text'] = retRes[cve_id]['CWE']                   
+                res_db[year][cve_id]['baseseverity2'] = retRes[cve_id]['CVSS20']['baseSeverity']                    
+                res_db[year][cve_id]['attackvector2'] = retRes[cve_id]['CVSS20']['attackVector']                    
+                res_db[year][cve_id]['vectorstring2'] = retRes[cve_id]['CVSS20']['vectorString']                    
+                res_db[year][cve_id]['basescore2'] = retRes[cve_id]['CVSS20']['baseScore']                    
+                res_db[year][cve_id]['exploitabilityScore'] = retRes[cve_id]['CVSS20']['exploitabilityScore']                    
+                res_db[year][cve_id]['baseseverity3'] = retRes[cve_id]['CVSS30']['baseSeverity']                    
+                res_db[year][cve_id]['attackvector3'] = retRes[cve_id]['CVSS30']['attackVector']                    
+                res_db[year][cve_id]['vectorstring3'] = retRes[cve_id]['CVSS30']['vectorString']                    
+                res_db[year][cve_id]['basescore3'] = retRes[cve_id]['CVSS30']['baseScore']                    
+                res_db[year][cve_id]['exploitabilityScore3'] = retRes[cve_id]['CVSS30']['exploitabilityScore']                 
+                if retRes[cve_id]['CVSS30']['attackVector']:
+                    res_db[year][cve_id]['attackvector'] = retRes[cve_id]['CVSS30']['attackVector']
+                else:
+                    res_db[year][cve_id]['attackvector'] = retRes[cve_id]['CVSS20']['attackVector']
+                if retRes[cve_id]['CVSS30']['baseSeverity']:
+                    res_db[year][cve_id]['baseseverity'] = retRes[cve_id]['CVSS30']['baseSeverity']
+                else:
+                    res_db[year][cve_id]['baseseverity'] = retRes[cve_id]['CVSS20']['baseSeverity']
+                if retRes[cve_id]['CVSS30']['vectorString']:
+                    res_db[year][cve_id]['vectorstring'] = retRes[cve_id]['CVSS30']['vectorString']
+                else:
+                    res_db[year][cve_id]['vectorstring'] = retRes[cve_id]['CVSS20']['vectorString']
+                if retRes[cve_id]['CVSS30']['baseScore']:
+                    res_db[year][cve_id]['basescore'] = retRes[cve_id]['CVSS30']['baseScore']
+                else:
+                    res_db[year][cve_id]['basescore'] = retRes[cve_id]['CVSS20']['baseScore']
 
-        for cve_id in retRes:
-            with open("/var/DB/CVEs/%s.json" % (cve_id), "w") as outfile:
-                json.dump(retRes[cve_id], outfile, indent = 2)
+                res_tab['baseScoreV2'] = "%s" % (retRes[cve_id]['CVSS20']['baseScore'])
+                res_tab['severityV2'] = "%s" % (retRes[cve_id]['CVSS20']['baseSeverity'])
+                res_tab['accessvectorV2'] ="%s" % (retRes[cve_id]['CVSS20']['attackVector'])
+                res_tab['baseScoreV3'] = "%s" % (retRes[cve_id]['CVSS30']['baseScore'])
+                res_tab['severityV3'] = "%s" % (retRes[cve_id]['CVSS30']['baseSeverity'])
+                res_tab['accessvectorV3'] ="%s" % (retRes[cve_id]['CVSS30']['attackVector'])
+                res_tab['baseScore'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseScore'], retRes[cve_id]['CVSS30']['baseScore'])
+                res_tab['severity'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseSeverity'], retRes[cve_id]['CVSS30']['baseSeverity'])
+                res_tab['accessvector'] ="%s/%s" % (retRes[cve_id]['CVSS20']['attackVector'], retRes[cve_id]['CVSS30']['attackVector'])
+                res_tab['lastModifiedDate'] = retRes[cve_id]['lastModifiedDate']
+                res_tables.append(res_tab)
 
-            data_id = retRes[cve_id]['data_id']
-            data_type = retRes[cve_id]['data_type']
+            # Vulnerability DB Generated (Year Wise)
+            for year in res_db:
+                with open("/var/DB/feeds/nvd/%s_db.json" % year, "w") as f:
+                    json.dump(res_db[year], f, indent = 2)  
 
-            if data_type == "CVE":
-                year = data_id.split("-")[1]
-            else:
-                year = publisheddate.split("-")[0]
+                r_results = []
+                for cve_id in res_db[year]:
+                    r_data = res_db[year][cve_id]
+                    r_results.append(r_data)
 
-            if year not in res_db:
-                res_db[year] = {}
+                with open("/var/DB/feeds/nvd/%s.json" % year, "w") as f:
+                    json.dump(r_results, f, indent = 2)
 
-            if cve_id not in res_db[year]:
-                res_db[year][cve_id] = {}
-
-            res_tab = {}
-            res_tab['year'] = year
-            res_tab['vulnerability'] = cve_id
-            res_tab['cve_id'] = cve_id
-            res_tab['niahid'] = retRes[cve_id]['niahid']
-            res_tab['cwe'] = retRes[cve_id]['CWE'] 
-            res_tab['products'] = []
-            res_tab['vendors'] = []    
-            for pkg in retRes[cve_id]['Products']['data']:
-                if pkg['product'] not in res_tab['products']:
-                    res_tab['products'].append(pkg['product'])
-                if pkg['vendor'] not in  res_tab['vendors']:
-                    res_tab['vendors'].append(pkg['vendor'])
-                if 'language' in pkg:
-                    res_tab['language'] = pkg['language']
-                if 'plugin' in pkg:
-                    res_tab['plugin'] = pkg['plugin']
-                if 'family' in pkg:
-                    res_tab['family'] = pkg['family']
-                if 'type' in pkg:
-                    res_tab['part'] = pkg['type']
-
-            res_db[year][cve_id]['products'] = retRes[cve_id]['Products']['data']
-            res_db[year][cve_id]['niahid'] = retRes[cve_id]['niahid']
-            res_db[year][cve_id]['cve_id'] = cve_id                    
-            res_db[year][cve_id]['application'] = application                   
-            res_db[year][cve_id]['reference'] = retRes[cve_id]['Reference']                    
-            res_db[year][cve_id]['cwe_str'] = self.getCWEText(retRes[cve_id]['CWE'])                   
-            res_db[year][cve_id]['publishedDate'] = retRes[cve_id]['publishedDate']                   
-            res_db[year][cve_id]['lastModifiedDate'] = retRes[cve_id]['lastModifiedDate']                   
-            res_db[year][cve_id]['description'] = retRes[cve_id]['description']                  
-            if 'Exploits' in retRes[cve_id]:
-                res_db[year][cve_id]['exploits'] = self.get_exploit_str(retRes[cve_id]['Exploits'])
-            else:
-                res_db[year][cve_id]['exploits'] = ''                         
-            res_db[year][cve_id]['cwe_text'] = retRes[cve_id]['CWE']                   
-            res_db[year][cve_id]['baseseverity2'] = retRes[cve_id]['CVSS20']['baseSeverity']                    
-            res_db[year][cve_id]['attackvector2'] = retRes[cve_id]['CVSS20']['attackVector']                    
-            res_db[year][cve_id]['vectorstring2'] = retRes[cve_id]['CVSS20']['vectorString']                    
-            res_db[year][cve_id]['basescore2'] = retRes[cve_id]['CVSS20']['baseScore']                    
-            res_db[year][cve_id]['exploitabilityScore'] = retRes[cve_id]['CVSS20']['exploitabilityScore']                    
-            res_db[year][cve_id]['baseseverity3'] = retRes[cve_id]['CVSS30']['baseSeverity']                    
-            res_db[year][cve_id]['attackvector3'] = retRes[cve_id]['CVSS30']['attackVector']                    
-            res_db[year][cve_id]['vectorstring3'] = retRes[cve_id]['CVSS30']['vectorString']                    
-            res_db[year][cve_id]['basescore3'] = retRes[cve_id]['CVSS30']['baseScore']                    
-            res_db[year][cve_id]['exploitabilityScore3'] = retRes[cve_id]['CVSS30']['exploitabilityScore']                 
-            if retRes[cve_id]['CVSS30']['attackVector']:
-                res_db[year][cve_id]['attackvector'] = retRes[cve_id]['CVSS30']['attackVector']
-            else:
-                res_db[year][cve_id]['attackvector'] = retRes[cve_id]['CVSS20']['attackVector']
-            if retRes[cve_id]['CVSS30']['baseSeverity']:
-                res_db[year][cve_id]['baseseverity'] = retRes[cve_id]['CVSS30']['baseSeverity']
-            else:
-                res_db[year][cve_id]['baseseverity'] = retRes[cve_id]['CVSS20']['baseSeverity']
-            if retRes[cve_id]['CVSS30']['vectorString']:
-                res_db[year][cve_id]['vectorstring'] = retRes[cve_id]['CVSS30']['vectorString']
-            else:
-                res_db[year][cve_id]['vectorstring'] = retRes[cve_id]['CVSS20']['vectorString']
-            if retRes[cve_id]['CVSS30']['baseScore']:
-                res_db[year][cve_id]['basescore'] = retRes[cve_id]['CVSS30']['baseScore']
-            else:
-                res_db[year][cve_id]['basescore'] = retRes[cve_id]['CVSS20']['baseScore']
-
-            res_tab['baseScoreV2'] = "%s" % (retRes[cve_id]['CVSS20']['baseScore'])
-            res_tab['severityV2'] = "%s" % (retRes[cve_id]['CVSS20']['baseSeverity'])
-            res_tab['accessvectorV2'] ="%s" % (retRes[cve_id]['CVSS20']['attackVector'])
-            res_tab['baseScoreV3'] = "%s" % (retRes[cve_id]['CVSS30']['baseScore'])
-            res_tab['severityV3'] = "%s" % (retRes[cve_id]['CVSS30']['baseSeverity'])
-            res_tab['accessvectorV3'] ="%s" % (retRes[cve_id]['CVSS30']['attackVector'])
-            res_tab['baseScore'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseScore'], retRes[cve_id]['CVSS30']['baseScore'])
-            res_tab['severity'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseSeverity'], retRes[cve_id]['CVSS30']['baseSeverity'])
-            res_tab['accessvector'] ="%s/%s" % (retRes[cve_id]['CVSS20']['attackVector'], retRes[cve_id]['CVSS30']['attackVector'])
-            res_tab['lastModifiedDate'] = retRes[cve_id]['lastModifiedDate']
-            res_tables.append(res_tab)
+            year_number -= 1
 
         # Table View data
         with open("/var/DB/feeds/nvd/vuln_feed.json", "w") as f:
             json.dump(res_tables, f, indent = 2)
-
-        res_tables = ''
-        # Vulnerability DB Generated (Year Wise)
-        for year in res_db:
-            with open("/var/DB/feeds/nvd/%s_db.json" % year, "w") as f:
-                json.dump(res_db[year], f, indent = 2)  
-
-            r_results = []
-            for cve_id in res_db[year]:
-                r_data = res_db[year][cve_id]
-                r_results.append(r_data)
-
-            with open("/var/DB/feeds/nvd/%s.json" % year, "w") as f:
-                json.dump(r_results, f, indent = 2)
-
-        r_results = ''
+        
+        res_tables = {}
+        r_results = []
 
         print("[ OK ] languages, plugins and platform feeds generation started")
         for app_type in results:
@@ -633,6 +640,10 @@ class cveFeed():
                     res_data['metadata'] = {}
 
                     for cve_id in tqdm(results[app_type][application]):
+                        retRes = {}
+                        with open("/var/DB/CVEs/%s.json" % cve_id, "r") as f:
+                            retRes[cve_id] = json.load(f)
+
                         res_data['metadata'][cve_id] = retRes[cve_id]
                         packages_details = results[app_type][application][cve_id]
 
@@ -644,7 +655,7 @@ class cveFeed():
                             product = pkg['product']
                             if product not in res_data['data'][platform]:
                                 res_data['data'][platform][product] = []
-                            
+                                
                             if pkg not in res_data['data'][platform][product]:
                                 res_data['data'][platform][product].append(pkg)
 
@@ -654,7 +665,7 @@ class cveFeed():
                 with open("/var/DB/feeds/%s/%s.json" % (app_type, app_type), "w") as f:
                     json.dump(res_data, f, indent = 2)
 
-            
+                
             if app_type == "plugin" or app_type == "language" or app_type == "platform":
                 app_type_lists = {}
                 app_type_lists['publishDate'] = date_update
@@ -666,9 +677,13 @@ class cveFeed():
                     res_data['data'] = []
                     res_data['metadata'] = {}
 
-                    for cve_id in tqdm(results[app_type][application]):    
+                    for cve_id in tqdm(results[app_type][application]):   
+                        retRes = {}
+                        with open("/var/DB/CVEs/%s.json" % cve_id, "r") as f:
+                            retRes[cve_id] = json.load(f)
+
                         res_data['metadata'][cve_id] = retRes[cve_id]
-                        
+                            
                         packages_details = results[app_type][application][cve_id]
                         for pkg in packages_details:
                             res = pkg
@@ -712,18 +727,19 @@ class cveFeed():
                                 res['basescore'] = retRes[cve_id]['CVSS30']['baseScore']
                             else:
                                 res['basescore'] = retRes[cve_id]['CVSS20']['baseScore']
-                        
+                            
                             res_data['data'].append(res)
 
                             if res not in app_type_lists['data']:
                                 app_type_lists['data'].append(res)
-                        
+                            
                     with open("/var/DB/feeds/%s/%s.json" % (app_type, application), "w") as f:
                         json.dump(res_data, f, indent = 2)
-                
+                    
                 with open("/var/DB/feeds/%s/%s.json" % (app_type, app_type), "w") as f:
                     json.dump(res_data, f, indent = 2)
 
+        
 
     def uniq_cwe(self, cwe_ids):
         cwes = []
