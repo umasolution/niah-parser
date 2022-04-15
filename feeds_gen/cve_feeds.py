@@ -630,7 +630,6 @@ class cveFeed():
                 with open("/var/DB/feeds/nvd/%s.json" % year, "w") as f:
                     json.dump(r_results, f, indent = 2)
 
-            year_number -= 1
 
         # Table View data
         with open("/var/DB/feeds/nvd/vuln_feed.json", "w") as f:
