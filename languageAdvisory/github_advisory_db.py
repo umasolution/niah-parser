@@ -558,7 +558,8 @@ class GHSAdvisory():
                                     lastModifiedDate = fetchData[0][6]
                                 affected_products_versions = fetchData[0][7]
                                 if affected_products_versions:
-                                    affected_products_versions.append(niah_version_id)
+                                    if niah_version_id not in affected_products_versions:
+                                        affected_products_versions.append(niah_version_id)
                                 revision = fetchData[0][8] + 1
                                 
                                 affected_version = {}
@@ -615,8 +616,8 @@ class GHSAdvisory():
         
                             if niahId in self.niahid_entry:
                                 revision = int(self.niahid_entry[niahId]['revision']) + 1
-                                if lastModifiedDate == self.niahid_entry[niahId]['lastmodifieddate']:
-                                    check = False
+                                #if lastModifiedDate == self.niahid_entry[niahId]['lastmodifieddate']:
+                                #    check = False
                                 self.niahid_entry[niahId]['revision'] = int(self.niahid_entry[niahId]['revision']) + 1
                                 self.niahid_entry[niahId]['lastmodifieddate'] = lastModifiedDate
                             else:
@@ -651,6 +652,8 @@ class GHSAdvisory():
                                 res.update_alerts('cve_id', data_id, date_update, message)
                                 
                     else:
+                        affected_products_versions = []
+
                         data_id = ghsa_id
                         data_type = "NOCVE"
 
@@ -673,8 +676,8 @@ class GHSAdvisory():
         
                         if niahId in self.niahid_entry:
                             revision = int(self.niahid_entry[niahId]['revision']) + 1
-                            if lastModifiedDate == self.niahid_entry[niahId]['lastmodifieddate']:
-                                check = False
+                            #if lastModifiedDate == self.niahid_entry[niahId]['lastmodifieddate']:
+                            #    check = False
                             self.niahid_entry[niahId]['revision'] = int(self.niahid_entry[niahId]['revision']) + 1
                             self.niahid_entry[niahId]['lastmodifieddate'] = lastModifiedDate
                         else:
