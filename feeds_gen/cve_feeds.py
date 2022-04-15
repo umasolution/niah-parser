@@ -256,6 +256,15 @@ class cveFeed():
 
     def nvdLoad(self, date_update):
         year_number = datetime.datetime.now().year
+        
+        year_tab = []
+
+        while year_number >= 2001:
+            year_tab.append(year_number)
+            year_number -= 1
+            
+        year_tab.append('0000')
+
         res_tables = []
         
         results = {}
@@ -265,7 +274,8 @@ class cveFeed():
 
         i = 0
 
-        while year_number >= 2001: 
+        # while year_number >= 2001: 
+        for year_number in year_tab:
             complete_res = []
 
             retRes = {}
@@ -275,7 +285,10 @@ class cveFeed():
             
             print("[ OK ] vuln Table Sync started")
             #cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab ORDER BY revision DESC"
-            cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab where data_id LIKE '%%CVE-%s-%%' ORDER BY revision DESC" % year_number
+            if year_number == '0000':
+                cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab where data_id not LIKE '%%CVE-%%' ORDER BY revision DESC"
+            else:
+                cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab where data_id LIKE '%%CVE-%s-%%' ORDER BY revision DESC" % year_number
 
             self.cursor.execute(cmd)
             fetchData = self.cursor.fetchall()
