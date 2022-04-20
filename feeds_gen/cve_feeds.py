@@ -1,5 +1,6 @@
 from cgitb import reset
 from ensurepip import version
+from operator import truediv
 import os
 from platform import platform
 import sys
@@ -126,7 +127,6 @@ class cveFeed():
                 cmd = "select versions from affected_versions_tab where niah_version_id='%s' ORDER BY revision DESC limit 1" % niah_version_id
                 self.cursor.execute(cmd)
                 fetchData = self.cursor.fetchall()
-
                 if len(fetchData) > 0:
                     versions_details = fetchData[0][0]
                     product_completed = []
@@ -146,15 +146,19 @@ class cveFeed():
                                 res[k] = v
                             res['affectedversions'] = []
                             for detail in versions_details[niah_product_id]:
+                                version = ''
+                                patch = ''
+
                                 r = {}
                                 if 'patch' in detail:
                                     patch = detail['patch']
-                                else:
-                                    patch = ''
+                                
                                 if 'version' in detail:
                                     version = detail['version']
-                                else:
-                                    version = ''
+                               
+                                if 'versions' in detail:
+                                    version = detail['versions']
+                                
                                 if 'platform' in detail:
                                     platform = detail['platform']
                                     r['platform'] = platform
@@ -163,9 +167,15 @@ class cveFeed():
                                     advisoryid = detail['advisoryid']
                                     r['advisoryid'] = advisoryid
 
-                                r['patch'] = patch
+                                if not version:
+                                    r['patch'] = "-"
+                                else:
+                                    r['patch'] = patch
+
                                 r['version'] = version
-                                res['affectedversions'].append(r)
+
+                                if r not in res['affectedversions']:
+                                    res['affectedversions'].append(r)
 
                             
                             results.append(res)
@@ -247,7 +257,6 @@ class cveFeed():
 
                 if check:
                     query = "INSERT INTO product_reference_tab(niah_product_id, product, vendor, type, advisory, data, revision) values('%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (niah_product_id, product, vendor, type, advisory, json.dumps(data), revision)
-                    print(query)
                     self.cursor.execute(query)
                     self.connection.commit()
 
@@ -277,12 +286,12 @@ class cveFeed():
         # while year_number >= 2001: 
         for year_number in year_tab:
             complete_res = []
-
+            
             retRes = {}
             vulns = []
 
             pkg_vnd_results = {}
-            
+                        
             print("[ OK ] vuln Table Sync started")
             #cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab ORDER BY revision DESC"
             if year_number == '0000':
@@ -298,11 +307,19 @@ class cveFeed():
                     complete_res.append(niahid)
                     data_type = row[1]
                     data_id = row[2]
+                    data_id = data_id.upper()
                     cve_id = data_id
                     if niahid not in vulns:
                         vulns.append(niahid)
                         cwe_data = row[3]
                         reference_data = row[4]
+                        try:
+                            if 'data' not in reference_data:
+                                reference_data['data'] = []
+                        except:
+                            reference_data = {}
+                            reference_data['data'] = []
+
                         description = row[5]
                         basemetricv3_data = row[6]
                         basemetricv2_data = row[7]
@@ -382,10 +399,10 @@ class cveFeed():
                                 res['appVendor'] = appVendor
                                 res['niah_version_id'] = niah_version_id
                                 res['niah_product_id'] = niah_product_id
-                                
 
                                 if 'language' in detail:
                                     res['language'] = detail['language']
+
                                     retRes[cve_id]['library_advisory']['data'].append(res)
 
                                     if detail['language'] not in results['language']:
@@ -394,9 +411,10 @@ class cveFeed():
                                         results['language'][detail['language']][cve_id] = []
                                     if res not in results['language'][detail['language']][cve_id]:
                                         results['language'][detail['language']][cve_id].append(res)
-                                
+
                                 if 'plugin' in detail:
                                     res['plugin'] = detail['plugin']
+
                                     retRes[cve_id]['plugin_advisory']['data'].append(res)
 
                                     if detail['plugin'] not in results['plugin']:
@@ -408,14 +426,20 @@ class cveFeed():
                                         results['plugin'][detail['plugin']][cve_id].append(res)
 
                                 if type == "platform":
-                                    if 'advisoryid' in detail:
-                                        res['advisoryid'] = detail['advisoryid']
-                                    res['platform'] = detail['platform']
-                                    
+                                    if 'advisoryid' in det:
+                                        res['advisoryid'] = det['advisoryid']
+                                    else:
+                                        res['advisoryid'] = ''
+
+                                    res['platform'] = det['platform']
+
+
                                     if advisory == "ubuntu":
                                         reference = "https://ubuntu.com/security/%s" % cve_id.upper()
-                                        res['family'] = "Ubuntu"
-                                        res['Reference'] = reference
+                                        res['family'] = "ubuntu"
+                                        res['vendor'] = "ubuntu"
+                                        if reference not in reference_data['data']:
+                                            reference_data['data'].append(reference)
                                         retRes[cve_id]['platform_advisory']['data'].append(res)
                                         if 'ubuntu' not in results['platform']:
                                             results['platform']['ubuntu'] = {}
@@ -427,8 +451,10 @@ class cveFeed():
 
                                     if advisory == "debian":
                                         reference = "https://security-tracker.debian.org/tracker/%s" % cve_id.upper()
-                                        res['family'] = "Debian"
-                                        res['Reference'] = reference
+                                        res['family'] = "debian"
+                                        res['vendor'] = "debian"
+                                        if reference not in reference_data['data']:
+                                            reference_data['data'].append(reference)
                                         retRes[cve_id]['platform_advisory']['data'].append(res)
                                         if 'debian' not in results['platform']:
                                             results['platform']['debian'] = {}
@@ -436,8 +462,10 @@ class cveFeed():
                                             results['platform']['debian'][cve_id] = []
                                         if res not in results['platform']['debian'][cve_id]:
                                             results['platform']['debian'][cve_id].append(res)
-                                
-                                retRes[cve_id]['Products']['data'].append(res)
+
+                                if advisory == "ADV":
+                                    if res not in retRes[cve_id]['Products']['data']:
+                                        retRes[cve_id]['Products']['data'].append(res)
 
                         if 'data' in cwe_data:
                             retRes[cve_id]['CWE'] = ','.join(self.uniq_cwe(cwe_data['data']))
@@ -549,20 +577,49 @@ class cveFeed():
                 res_tab['niahid'] = retRes[cve_id]['niahid']
                 res_tab['cwe'] = retRes[cve_id]['CWE'] 
                 res_tab['products'] = []
-                res_tab['vendors'] = []    
+                res_tab['vendors'] = []
+                res_tab['family'] = []
+                res_tab['language'] = []
+                res_tab['plugin'] = []
+                res_tab['part'] = []
+                res_tab['platform'] = []
+                res_tab['advisoryid'] = []
+                  
                 for pkg in retRes[cve_id]['Products']['data']:
                     if pkg['product'] not in res_tab['products']:
-                        res_tab['products'].append(pkg['product'])
+                        if pkg['product'] not in res_tab['products']:
+                            res_tab['products'].append(pkg['product'])
                     if pkg['vendor'] not in  res_tab['vendors']:
-                        res_tab['vendors'].append(pkg['vendor'])
-                    if 'language' in pkg:
-                        res_tab['language'] = pkg['language']
-                    if 'plugin' in pkg:
-                        res_tab['plugin'] = pkg['plugin']
-                    if 'family' in pkg:
-                        res_tab['family'] = pkg['family']
+                        if pkg['vendor'] not in res_tab['vendors']:
+                            res_tab['vendors'].append(pkg['vendor'])
                     if 'type' in pkg:
-                        res_tab['part'] = pkg['type']
+                        if pkg['type'] not in res_tab['part']:
+                            res_tab['part'].append(pkg['type'])
+
+                if 'platform_advisory' in retRes[cve_id]:
+                    for pkg in retRes[cve_id]['platform_advisory']['data']:
+                        if 'family' in pkg:
+                            if pkg['family'] not in res_tab['family']:
+                                res_tab['family'].append(pkg['family'])
+                        if 'platform' in pkg:
+                            if pkg['platform'] not in res_tab['platform']:
+                                res_tab['platform'].append(pkg['platform'])
+                        if 'advisoryid' in pkg:
+                            if pkg['advisoryid'] not in res_tab['advisoryid']:
+                                res_tab['advisoryid'].append(pkg['advisoryid'])
+                    
+
+                if 'plugin_advisory' in retRes[cve_id]:
+                    for pkg in retRes[cve_id]['plugin_advisory']['data']:
+                        if 'plugin' in pkg:
+                            if pkg['plugin'] not in res_tab['plugin']:
+                                res_tab['plugin'].append(pkg['plugin'])
+
+                if 'library_advisory' in retRes[cve_id]:
+                    for pkg in retRes[cve_id]['library_advisory']['data']:
+                        if 'language' in pkg:
+                            if pkg['language'] not in res_tab['language']:
+                                res_tab['language'].append(pkg['language'])
 
                 res_db[year][cve_id]['products'] = retRes[cve_id]['Products']['data']
                 res_db[year][cve_id]['niahid'] = retRes[cve_id]['niahid']
@@ -631,6 +688,7 @@ class cveFeed():
                     json.dump(r_results, f, indent = 2)
 
 
+        
         # Table View data
         with open("/var/DB/feeds/nvd/vuln_feed.json", "w") as f:
             json.dump(res_tables, f, indent = 2)
@@ -638,8 +696,21 @@ class cveFeed():
         res_tables = {}
         r_results = []
 
+        with open("application.config", "r") as f:
+            app_json_db = json.load(f)
+
+        applications = []
+
+        for app in app_json_db['packageRegex']:
+            applications.append(app)
+
+        applications_lists = {}
+        applications_lists['publishDate'] = date_update
+        applications_lists['data'] = []
+
         print("[ OK ] languages, plugins and platform feeds generation started")
         for app_type in results:
+            """
             if app_type == "platform":
                 app_type_lists = {}
                 app_type_lists['publishDate'] = date_update
@@ -677,8 +748,10 @@ class cveFeed():
                 with open("/var/DB/feeds/%s/%s.json" % (app_type, app_type), "w") as f:
                     json.dump(res_data, f, indent = 2)
 
-                
-            if app_type == "plugin" or app_type == "language" or app_type == "platform":
+            """
+
+            #if app_type == "plugin" or app_type == "language" or app_type == "platform":
+            if app_type == "plugin" or app_type == "language":
                 app_type_lists = {}
                 app_type_lists['publishDate'] = date_update
                 app_type_lists['data'] = []
@@ -745,13 +818,18 @@ class cveFeed():
                             if res not in app_type_lists['data']:
                                 app_type_lists['data'].append(res)
                             
+                            if pkg['product'] in applications:
+                                if res not in applications_lists['data']:
+                                    applications_lists['data'].append(res)
+
                     with open("/var/DB/feeds/%s/%s.json" % (app_type, application), "w") as f:
                         json.dump(res_data, f, indent = 2)
                     
                 with open("/var/DB/feeds/%s/%s.json" % (app_type, app_type), "w") as f:
                     json.dump(res_data, f, indent = 2)
 
-        
+        with open("/var/DB/feeds/application/application.json", "w") as f:
+            json.dump(applications_lists, f, indent = 2)
 
     def uniq_cwe(self, cwe_ids):
         cwes = []
