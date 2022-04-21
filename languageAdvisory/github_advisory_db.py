@@ -98,7 +98,7 @@ class GHSAdvisory():
     def check_niahid_entry(self, niahId):
         self.connection = psycopg2.connect(user='versa',password='versa123',host='127.0.0.1',port="5432",database='niahdb')
         self.cursor = self.connection.cursor()
-        query = "select cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, revision from vuln_tab where niahid='%s'" % niahId
+        query = "select cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, revision from vuln_tab where niahid='%s' ORDER BY revision DESC limit 1" % niahId
         self.cursor = self.connection.cursor()
         self.cursor.execute(query)
         fetchData = self.cursor.fetchall()
