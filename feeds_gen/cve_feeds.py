@@ -469,12 +469,30 @@ class cveFeed():
                                 type = detail['type']
                             else:
                                 type = ''
+                            
+                            groupid = ''
+                            artifactid = ''
+                            packagename = ''
+
+                            if 'groupid' in detail:
+                                groupid = detail['groupid']
+                            if 'artifactid' in detail:
+                                artifactid = detail['artifactid']
+                            if 'packagename' in detail:
+                                packagename = detail['packagename']
 
                             for det in detail['affectedversions']:
                                 version = det['version']
                                 patch = det['patch']
 
                                 res = {}
+                                res['product'] = product
+                                if groupid:
+                                    res['groupid'] = groupid
+                                if artifactid:
+                                    res['artifactid'] = artifactid
+                                if packagename:
+                                    res['packagename'] = packagename
                                 res['product'] = product
                                 res['vendor'] = vendor   
                                 res['version'] = version
@@ -695,7 +713,8 @@ class cveFeed():
 
                 res_db[year][cve_id]['products'] = retRes[cve_id]['Products']['data']
                 res_db[year][cve_id]['niahid'] = retRes[cve_id]['niahid']
-                res_db[year][cve_id]['cve_id'] = cve_id                    
+                res_db[year][cve_id]['cve_id'] = cve_id        
+                res_db[year][cve_id]['vuln_name'] = cve_id            
                 res_db[year][cve_id]['reference'] = retRes[cve_id]['Reference']                    
                 res_db[year][cve_id]['cwe_str'] = self.getCWEText(retRes[cve_id]['CWE'])                   
                 res_db[year][cve_id]['publishedDate'] = retRes[cve_id]['publishedDate']                   
@@ -742,6 +761,13 @@ class cveFeed():
                 res_tab['baseScore'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseScore'], retRes[cve_id]['CVSS30']['baseScore'])
                 res_tab['severity'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseSeverity'], retRes[cve_id]['CVSS30']['baseSeverity'])
                 res_tab['accessvector'] ="%s/%s" % (retRes[cve_id]['CVSS20']['attackVector'], retRes[cve_id]['CVSS30']['attackVector'])
+                res_tab['vectorStringV3'] = retRes[cve_id]['CVSS30']['vectorString']
+                res_tab['vectorStringV2'] = retRes[cve_id]['CVSS20']['vectorString']
+                if res_tab['vectorStringV3']:
+                    res_tab['vectorString'] = retRes[cve_id]['CVSS30']['vectorString']
+                else:
+                    res_tab['vectorString'] = retRes[cve_id]['CVSS20']['vectorString']
+
                 res_tab['lastModifiedDate'] = retRes[cve_id]['lastModifiedDate']
                 res_tables.append(res_tab)
 
@@ -799,8 +825,9 @@ class cveFeed():
                             retRes[cve_id] = json.load(f)
                         for appdata in tqdm(results[app_type][application][cve_id]):
                             res = appdata
-                            res[cve_id] = cve_id
-
+                            res['cve_id'] = cve_id
+                            res['vuln_name'] = cve_id
+                            res['cwe_text'] = retRes[cve_id]['CWE']
                             res['baseScoreV2'] = "%s" % (retRes[cve_id]['CVSS20']['baseScore'])
                             res['severityV2'] = "%s" % (retRes[cve_id]['CVSS20']['baseSeverity'])
                             res['accessvectorV2'] ="%s" % (retRes[cve_id]['CVSS20']['attackVector'])
@@ -810,6 +837,12 @@ class cveFeed():
                             res['baseScore'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseScore'], retRes[cve_id]['CVSS30']['baseScore'])
                             res['severity'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseSeverity'], retRes[cve_id]['CVSS30']['baseSeverity'])
                             res['accessvector'] ="%s/%s" % (retRes[cve_id]['CVSS20']['attackVector'], retRes[cve_id]['CVSS30']['attackVector'])
+                            res['vectorStringV3'] = retRes[cve_id]['CVSS30']['vectorString']
+                            res['vectorStringV2'] = retRes[cve_id]['CVSS20']['vectorString']
+                            if res['vectorStringV3']:
+                                res['vectorString'] = retRes[cve_id]['CVSS30']['vectorString']
+                            else:
+                                res['vectorString'] = retRes[cve_id]['CVSS20']['vectorString']
                             res['lastModifiedDate'] = retRes[cve_id]['lastModifiedDate']
                             res['publishedDate'] = retRes[cve_id]['publishedDate'] 
                             res['niahid'] = retRes[cve_id]['niahid']

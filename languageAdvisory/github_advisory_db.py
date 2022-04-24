@@ -421,7 +421,7 @@ class GHSAdvisory():
                     severity = results['severity']
                     if severity.lower() == "moderate":
                         severity = "medium"
-                    severity = severity.lower()
+                    severity = severity.upper()
                     publisheddate = results['pub_date']
                     lastModifiedDate = results['lastupdate_date']
                     product = results['product']
@@ -481,6 +481,10 @@ class GHSAdvisory():
                     res = {}
                     res['language'] = application
                     res['part'] = 'a'
+                    if groupId:
+                        res['groupid'] = groupId
+                    if artifactId:
+                        res['artifactid'] = artifactId
                                     
                     type ="NVD"
                     advisory = 'GHSA'

@@ -46,6 +46,9 @@ ALTER TABLE product_reference_tab ADD CONSTRAINT niah_product_id UNIQUE (niah_pr
 ALTER TABLE affected_versions_tab ADD CONSTRAINT niah_version_id UNIQUE (niah_version_id, revision);
 CREATE TABLE history(id SERIAL PRIMARY KEY, username VARCHAR(200), type VARCHAR(100), niahid TEXT, status VARCHAR(100), lastupdated VARCHAR(100), revision int);
 
+in API:
+CREATE TABLE task_manager(id SERIAL PRIMARY KEY, user_id text, projectid text, res_id text)
+
 """
 
 

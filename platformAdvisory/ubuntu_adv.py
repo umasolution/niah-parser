@@ -338,6 +338,7 @@ class moniUbuntuDB():
 
                 for cve in cves.split(','):
                     if re.findall(r'CVE-\d+-\d+', str(cve), re.IGNORECASE):
+                        cve = cve.upper()
                         pkgVersDetails = self.getCVEDetails(cve)		
                         if len(pkgVersDetails) > 0:
                             infectedPackageDetails = {}
@@ -613,6 +614,7 @@ class moniUbuntuDB():
 
                     for cve in cves.split(','):
                         if re.findall(r'CVE-\d+-\d+', str(cve), re.IGNORECASE):
+                            cve = cve.upper()
                             pkgVersDetails = self.getCVEDetails(cve)		
                             if len(pkgVersDetails) > 0:
                                 infectedPackageDetails = {}
