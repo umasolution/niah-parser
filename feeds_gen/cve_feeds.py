@@ -567,6 +567,8 @@ class cveFeed():
                                     res_platform['baseScore'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseScore'], retRes[cve_id]['CVSS30']['baseScore'])
                                     res_platform['severity'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseSeverity'], retRes[cve_id]['CVSS30']['baseSeverity'])
                                     res_platform['accessvector'] ="%s/%s" % (retRes[cve_id]['CVSS20']['attackVector'], retRes[cve_id]['CVSS30']['attackVector'])
+                                    res_platform['vectorStringV2'] = retRes[cve_id]['CVSS20']['vectorString']
+                                    res_platform['vectorStringV3'] = retRes[cve_id]['CVSS30']['vectorString']
                                     res_platform['lastModifiedDate'] = retRes[cve_id]['lastModifiedDate']
                                     res_platform['publishedDate'] = retRes[cve_id]['publishedDate'] 
                                     res_platform['niahid'] = retRes[cve_id]['niahid']
@@ -632,6 +634,39 @@ class cveFeed():
 
 
                                 if product in applications:
+                                    res['baseScoreV2'] = "%s" % (retRes[cve_id]['CVSS20']['baseScore'])
+                                    res['severityV2'] = "%s" % (retRes[cve_id]['CVSS20']['baseSeverity'])
+                                    res['accessvectorV2'] = "%s" % (retRes[cve_id]['CVSS20']['attackVector'])
+                                    res['baseScoreV3'] = "%s" % (retRes[cve_id]['CVSS30']['baseScore'])
+                                    res['severityV3'] = "%s" % (retRes[cve_id]['CVSS30']['baseSeverity'])
+                                    res['accessvectorV3'] = "%s" % (retRes[cve_id]['CVSS30']['attackVector'])
+                                    if retRes[cve_id]['CVSS30']['baseScore']:
+                                        res['baseScore'] = retRes[cve_id]['CVSS30']['baseScore']
+                                    else:
+                                        res['baseScore'] = retRes[cve_id]['CVSS20']['baseScore']
+                                    if retRes[cve_id]['CVSS30']['baseSeverity']:
+                                        res['severity'] = retRes[cve_id]['CVSS30']['baseSeverity']
+                                    else:
+                                        res['severity'] = retRes[cve_id]['CVSS20']['baseSeverity']
+                                    if retRes[cve_id]['CVSS30']['attackVector']:
+                                        res['accessvector'] = retRes[cve_id]['CVSS30']['attackVector']
+                                    else:
+                                        res['accessvector'] = retRes[cve_id]['CVSS20']['attackVector']
+                                    res['vectorStringV2'] = retRes[cve_id]['CVSS20']['vectorString']
+                                    res['vectorStringV3'] = retRes[cve_id]['CVSS30']['vectorString']
+                                    if retRes[cve_id]['CVSS30']['vectorString']:
+                                        res['vectorString'] = retRes[cve_id]['CVSS30']['vectorString']
+                                    else:
+                                        res['vectorString'] = retRes[cve_id]['CVSS20']['vectorString']
+                                    res['lastModifiedDate'] = retRes[cve_id]['lastModifiedDate']
+                                    res['publishedDate'] = retRes[cve_id]['publishedDate'] 
+                                    res['niahid'] = retRes[cve_id]['niahid']
+                                    res['reference'] = retRes[cve_id]['Reference']
+                                    res['description'] = retRes[cve_id]['description']
+                                    res['cwe'] = self.getCWEText(retRes[cve_id]['CWE'])
+                                    res['data_id'] = data_id
+                                    res['cve_id'] = cve_id
+
                                     if res not in applications_lists['data']:
                                         applications_lists['data'].append(res)
 
@@ -806,6 +841,13 @@ class cveFeed():
 
             with open("/var/DB/feeds/platform/%s.json" % (family), "w") as f:
                     json.dump(res, f, indent = 2)
+
+
+        # Application feeds
+        print("[ OK ] Application Feeds generation")
+        with open("/var/DB/feeds/application/application.json", "w") as outfile:
+            json.dump(applications_lists, outfile, indent = 2)
+
 
         # Language and plugin feeds
         print("[ OK ] languages, plugins and platform feeds generation started")
