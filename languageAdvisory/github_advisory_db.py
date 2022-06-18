@@ -222,6 +222,8 @@ class GHSAdvisory():
                     application = div.findAll('span', {'class':'color-text-secondary f4'})[0].text
                 elif div.findAll('span', {'class':'color-fg-muted f4'}):
                     application = div.findAll('span', {'class':'color-fg-muted f4'})[0].text
+                elif div.findAll('span', {'class':'color-fg-muted f4 d-inline-flex'}):
+                    application = div.findAll('span', {'class':'color-fg-muted f4 d-inline-flex'})[0].text
                 else:
                     print("[ OK ] Application not found")
                     sys.exit(1)
