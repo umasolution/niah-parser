@@ -58,11 +58,14 @@ class debianParser():
         for platform in platforms:
             print("[ INFO ] %s platform rss fetching started" % platform)
             url = "https://packages.debian.org/%s/main/newpkg?format=rss" % platform
-            page = requests.get(url).text
-            soup = BeautifulSoup(page, "html.parser")
-            item_elements = soup.findAll("item")
-            for item_tag in item_elements:
-                link = item_tag.find("link")
+            headers = requests.utils.default_headers()
+            headers.update({
+                'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
+            })
+            page = requests.get(url, headers=headers)
+            results = xmltodict.parse(page.content)
+            for item in tqdm(results['rdf:RDF']['item']):
+                link = item['link']
                 packagename = self.get_package(link, platform)
                 update_array['updated'].append(packagename)
 
