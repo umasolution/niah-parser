@@ -393,7 +393,7 @@ class GHSAdvisory():
         fetchData = self.cursor.fetchall()
         return fetchData[0][0] + 1
 
-    def initialize(self, date_update):
+    def initialize(self, date_update, updated_cves):
         print("[ OK ] GHSAdvisory Sync Started")
 
         i = 0
@@ -516,7 +516,9 @@ class GHSAdvisory():
                         self.cursor.execute(query)
                         self.connection.commit()
                         self.product_entry[niah_product_id] = revision
-                
+
+                        updated_cves['product_ids'].append(niah_product_id)
+
                         query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_product_id, 'indev', date_update, '0')
                         self.cursor.execute(query)
                         self.connection.commit()
@@ -637,6 +639,8 @@ class GHSAdvisory():
                                 self.cursor.execute(query)
                                 self.connection.commit()
 
+                                updated_cves['niah_ids'].append(niahId)
+
                                 query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'cve', niahId, 'indev', date_update, revision)
                                 self.cursor.execute(query)
                                 self.connection.commit()
@@ -664,7 +668,7 @@ class GHSAdvisory():
                         data_type = "NOCVE"
 
                         niahId = "NIAH-%s-%s" % (data_type, ghsa_id)
-                        niah_version_id = "NIAH-VERSION-NVD-ADV-%s" % ghsa_id
+                        niah_version_id = "NIAH-VERSION-NVD-GHSA-%s" % ghsa_id
 
                         if niah_version_id not in results:
                             results[niah_version_id] = {}
@@ -697,6 +701,8 @@ class GHSAdvisory():
                             self.cursor.execute(query)
                             self.connection.commit()
 
+                            updated_cves['niah_ids'].append(niahId)
+
                             query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'cve', niahId, 'indev', date_update, revision)
                             self.cursor.execute(query)
                             self.connection.commit()
@@ -720,7 +726,7 @@ class GHSAdvisory():
             i = i + 1
             
         print("[ OK ] GHSAdvisory Sync Completed")
-
+        return updated_cves
             
 if __name__ == "__main__":
     now = datetime.datetime.now()

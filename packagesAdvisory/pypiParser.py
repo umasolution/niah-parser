@@ -30,6 +30,7 @@ class pypi_parser():
 
 
     def startParsing(self, fullscan):
+        update_array = {}
         if fullscan == "yes":
             if not os.path.exists('pypi_data.json'):
                 url = "https://pypi.org/simple/"
@@ -68,11 +69,22 @@ class pypi_parser():
                     daily_data = json.load(f)
 
                 process_json = {}
+                
+                if 'updates' in url:
+                    update_array['updated'] = []
+                if 'packages' in url:
+                    update_array['packages'] = []
 
                 for item in tqdm(daily_data):
+                    if 'updates' in url:
+                        update_array['updated'].append(item)
+                    if 'packages' in url:
+                        update_array['packages'].append(item)
+
                     url = f"https://pypi.org/pypi/{item}/json";
                     self.pypiParser(item, url)
 
+        return update_array
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -144,6 +144,7 @@ class npm_parser():
 
 
     def startParsing(self, fullscan):
+        update_array = {}
         if fullscan == "yes":
             if not os.path.exists('npm_pkg.json'):
                 url = "https://replicate.npmjs.com/_all_docs"
@@ -181,10 +182,14 @@ class npm_parser():
             with open("npm_daily_data.json", "r") as f:
                 daily_data = json.load(f)
 
+            update_array['updated'] = []
+
             for item in tqdm(daily_data):
+                update_array['updated'].append(item)
                 url = f"https://registry.npmjs.org/{item}";
                 self.npmParser(item, url)
-               
+
+        return update_array       
 
 
 if __name__ == '__main__':

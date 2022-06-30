@@ -26,6 +26,8 @@ import json
 import psycopg2
 from lib.alearts_manage import check_alerts
 import sqlite3
+from pathlib import Path
+
 
 """
 CREATE TABLE vuln_tab(id SERIAL PRIMARY KEY, niahid TEXT UNIQUE, data_type VARCHAR(20), data_id VARCHAR(20), cwe_data jsonb, reference_data jsonb, description jsonb, basemetricv3_data jsonb, basemetricv2_data jsonb, publisheddate VARCHAR(20), lastmodifieddate VARCHAR(20), affected_products_versions jsonb, status VARCHAR(100));
@@ -141,6 +143,8 @@ class nvdGet():
                 print("[ OK ] %s year started" % year)
                 self.initialize(year, filename)
 
+
+
     def cleanup(self):
         #Removes NVD feeds
         os.system("rm -rf NVD/*")
@@ -233,6 +237,17 @@ class nvdGet():
             return True
 
     def initialize(self, year, filename):
+        update_filename = "/var/DB/feeds/updated/%s.json" % datetime.datetime.today().strftime('%Y-%m-%d').replace("-", "_")
+
+        update_filename_path = Path(update_filename)
+        if update_filename_path.is_file():
+            with open(update_filename, "r") as f:
+                updated_cves = json.load(f)
+        else:
+            updated_cves = {}
+            updated_cves['product_ids'] = []
+            updated_cves['niah_ids'] = []
+
         all_cves = []
 
         fileData = open("NVD/%s" % filename, "r")
@@ -479,6 +494,8 @@ class nvdGet():
                                         self.connection.commit()
                                         self.product_entry[niah_adv_id] = '0'
         
+                                        updated_cves['product_ids'].append(niah_adv_id)
+
                                         query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_adv_id, 'indev', date_update, '0')
                                         #print(query)
                                         self.cursor.execute(query)
@@ -611,6 +628,8 @@ class nvdGet():
                                     self.connection.commit()  
                                     self.product_entry[niah_adv_id] = '0'
 
+                                    updated_cves['product_ids'].append(niah_adv_id)
+
                                     query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_adv_id, 'indev', date_update, '0')
                                     #print(query)
                                     self.cursor.execute(query)
@@ -656,6 +675,8 @@ class nvdGet():
                 self.cursor.execute(query)
                 self.connection.commit()
                 
+                updated_cves['niah_ids'].append(niahId)
+
                 self.connection = psycopg2.connect(user=self.userName, password=self.password, host=self.hostName, port="5432", database=self.databaseName)
                 self.cursor = self.connection.cursor()
 
@@ -681,8 +702,10 @@ class nvdGet():
                 message = "(NIAH-VULN-ID : %s) %s CVE updated" % (niahId, data_id)
                 res = check_alerts()
                 res.update_alerts('cve_id', data_id, self.date_update, message)
-
-
+        
+        with open(update_filename, 'w') as outfile:
+            json.dump(updated_cves, outfile, indent=2)
+            
 
 if __name__ == "__main__":
     now = datetime.datetime.now()

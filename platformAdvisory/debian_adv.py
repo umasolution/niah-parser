@@ -110,7 +110,7 @@ class moniDebianDB():
         else:
             return False
 
-    def getrss(self, date_update):
+    def getrss(self, date_update, updated_cves):
         print("RSS Fetch Started")
         cve_re = re.compile(r"CVE\W\w{4}\W\w+")
         url = "https://www.debian.org/security/dsa"
@@ -160,7 +160,6 @@ class moniDebianDB():
 
             if len(cves) > 0:
                 for cve in list(set(cves)):
-                    print(cve)
                     niahId = "NIAH-CVE-%s" % (cve)
                     publisheddate = pub_date
                     lastmodifieddate = pub_date
@@ -306,13 +305,15 @@ class moniDebianDB():
                                 self.cursor.execute(query)
                                 self.connection.commit()
 
+                                updated_cves['product_ids'].append(niah_product_id)
 
                             res = {}
                             res['product'] = product
                             res['versions'] = versions
+                            res['version'] = "[0.0:%s)" % versions
                             res['platform'] = platform
                             res['advisoryid'] = aTag
-                            res['patch'] = "upgrade to %s" % versions
+                            res['patch'] = "upgrade %s to %s" % (platform, versions)
         
                             if niah_product_id not in results:
                                 results[niah_product_id] = []
@@ -374,6 +375,7 @@ class moniDebianDB():
                                 except:
                                     pass
 
+                            updated_cves['niah_ids'].append(niahId)
                             
                             self.connection = psycopg2.connect(user=self.userName,password=self.password,host=self.hostName,port="5432",database=self.databaseName)
                             self.cursor = self.connection.cursor()
@@ -402,9 +404,10 @@ class moniDebianDB():
                             res = check_alerts()
                             res.update_alerts('cve_id', data_id, lastmodifieddate, message)
                             
+        return updated_cves
 
-    def initialize(self, date_update):
-        self.getrss(date_update)
+    def initialize(self, date_update, updated_cves):
+        updated_cves = self.getrss(date_update, updated_cves)
         date_update = date_update
         cve_re = re.compile(r"CVE\W\w{4}\W\w+")
         url = "https://www.debian.org/security/"
@@ -624,7 +627,6 @@ class moniDebianDB():
 
 
                                         niah_product_id = "NIAH-PLATFORM-DEBIAN-%s" % (product.upper())
-                                        
 
                                         res = {}
                                         res['platform'] = 'linux'
@@ -644,6 +646,8 @@ class moniDebianDB():
                                             self.connection.commit()
                                             self.product_entry[niah_product_id] = '0'
 
+                                            updated_cves['product_ids'].append(niah_product_id)
+
                                             query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_product_id, 'indev', date_update, '0')
                                             self.cursor.execute(query)
                                             self.connection.commit()
@@ -651,9 +655,10 @@ class moniDebianDB():
                                         res = {}
                                         res['product'] = product
                                         res['versions'] = versions
+                                        res['version'] = "[0.0:%s)" % versions
                                         res['platform'] = platform
                                         res['advisoryid'] = aTag
-                                        res['patch'] = "upgrade to %s" % versions
+                                        res['patch'] = "upgrade %s to %s" % (platform, versions)
                     
                                         if niah_product_id not in results:
                                             results[niah_product_id] = []
@@ -712,6 +717,8 @@ class moniDebianDB():
                                             except:
                                                 pass
 
+                                        updated_cves['niah_ids'].append(niahId)
+
                                         self.connection = psycopg2.connect(user=self.userName,password=self.password,host=self.hostName,port="5432",database=self.databaseName)
                                         self.cursor = self.connection.cursor()
 
@@ -744,6 +751,8 @@ class moniDebianDB():
                 if self.daily:
                    break
         
+        return updated_cves
+            
             
 if __name__ == "__main__":
     now = datetime.datetime.now()

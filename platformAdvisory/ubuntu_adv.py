@@ -204,7 +204,7 @@ class moniUbuntuDB():
         results["pub_date"] = pub_date
         return results
         
-    def getrss(self, date_update):
+    def getrss(self, date_update, updated_cves):
         url = "https://ubuntu.com/security/notices/rss.xml"
         headers = requests.utils.default_headers()
         headers.update({
@@ -272,26 +272,26 @@ class moniUbuntuDB():
                 sections = soup.findAll('section', {'class':'p-strip--suru-topped'})
 
                 divs = sections[0].findAll('div', {'class':'row'})
-                for div1 in divs:
-                    for div in div1.findAll('div', {'class':'row'}):
-                        if re.findall(r'Update instructions', str(div)):
-                            h5Array = div.findAll('h5')
-                            ulArray = div.findAll('ul')
+                for div in divs:
+                    #for div in div1.findAll('div', {'class':'row'}):
+                    if re.findall(r'Update instructions', str(div)):
+                        h5Array = div.findAll('h5')
+                        ulArray = div.findAll('ul')
 
-                            ulA = []
-                            h5A = []
-                            for h5 in h5Array:
-                                h5 = h5.text
-                                h5 = h5.strip()
-                                h5 = re.sub(r'\n\s+', '', str(h5))
-                                h5A.append(h5)
+                        ulA = []
+                        h5A = []
+                        for h5 in h5Array:
+                            h5 = h5.text
+                            h5 = h5.strip()
+                            h5 = re.sub(r'\n\s+', '', str(h5))
+                            h5A.append(h5)
 
-                            for ul in ulArray:
-                                ul = ul.text
-                                ul = re.sub(r'\n\s+', ' ', str(ul))
-                                ulA.append(ul.strip())
+                        for ul in ulArray:
+                            ul = ul.text
+                            ul = re.sub(r'\n\s+', ' ', str(ul))
+                            ulA.append(ul.strip())
 
-                            dictA = dict(zip(ulA, h5A))
+                        dictA = dict(zip(ulA, h5A))
 
                 platformArray = []
                 infectedPackageDetails = {}
@@ -326,6 +326,8 @@ class moniUbuntuDB():
                         self.cursor.execute(query)
                         self.connection.commit()
                         self.product_entry[niah_product_id] = '0'
+
+                        updated_cves['product_ids'].append(niah_product_id)
 
                         query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_product_id, 'indev', date_update, '0')
                         self.cursor.execute(query)
@@ -381,6 +383,8 @@ class moniUbuntuDB():
                                 self.connection.commit()
                                 self.product_entry[niah_product_id] = '0'
 
+                                updated_cves['product_ids'].append(niah_product_id)
+
                                 query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_product_id, 'indev', date_update, '0')
                                 self.cursor.execute(query)
                                 self.connection.commit()
@@ -389,9 +393,10 @@ class moniUbuntuDB():
                             res = {}
                             res['product'] = product
                             res['versions'] = versions
+                            res['version'] = "[0.0:%s)" % versions
                             res['platform'] = platform
                             res['advisoryid'] = usn_id
-                            res['patch'] = "upgrade to %s" % versions
+                            res['patch'] = "upgrade %s to %s" % (platform, versions)
         
                             if niah_product_id not in results:
                                 results[niah_product_id] = []
@@ -451,6 +456,8 @@ class moniUbuntuDB():
                                     self.connection.commit()        
                                 except:
                                     pass
+                            
+                            updated_cves['niah_ids'].append(niahId)
 
                             query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'cve', niahId, 'indev', date_update, revision)
                             self.cursor.execute(query)
@@ -472,10 +479,11 @@ class moniUbuntuDB():
                             res = check_alerts()
                             res.update_alerts('cve_id', data_id, lastmodifieddate, message)
 
+        return updated_cves
 
-    def initialize(self, date_update):
+    def initialize(self, date_update, updated_cves):
         print("[ OK ] Ubuntu RSS Feed sync")
-        self.getrss(date_update)
+        updated_cves = self.getrss(date_update, updated_cves)
         print("[ OK ] Ubuntu advisory first page sync")
         date_update = date_update
         url = "https://usn.ubuntu.com/"
@@ -488,81 +496,83 @@ class moniUbuntuDB():
         soup = BeautifulSoup(page.content, "html.parser")
 
         #i1 = 166
-        i1 = 1
+        i1 = 10
         while True:
             print("#### - %s" % i1)
-            url = "https://ubuntu.com/security/notices?page=%s" % i1
-            headers = requests.utils.default_headers()
-            headers.update({
-                'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
-            })
-
-
-            page = requests.get(url, headers=headers)
-            soup = BeautifulSoup(page.content, "html.parser")
-
-            if not self.daily:
-                if re.findall(r'404: Page not found', str(soup)):
-                    break
-
-            articles = soup.findAll('article',{'class':'notice'})
-
-            for article in tqdm(articles):
-                aTag = article.findAll('a')
-            
-                aUrl = aTag[0].get('href')
-                aUrl = "https://ubuntu.com%s" % aUrl
-                name = article.findAll('h3')[0].text
-                name = name[:-2]
-                name = name.replace("'", "")
-
-                urlSub = aUrl
-                usn = urlSub.split("/")[-1]
-                usn_id = usn
-               
-                reference = "https://ubuntu.com/security/notices/%s" % usn_id
-
-                cwe_id = {}
-                cwe_id['data'] = []
-
-                refe = {}
-                refe['data'] = []
-                refe['data'].append(reference)
-
-                desc = {}
-                desc['ubuntu'] = name
-
-                basemetricv2_data = {}
-                basemetricv3_data = {}
-
+            if i1 > 5900:
+                #url = "https://ubuntu.com/security/notices?page=%s" % i1
+                url = "https://ubuntu.com/security/notices?offset=%s" % i1
                 headers = requests.utils.default_headers()
                 headers.update({
                     'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
                 })
 
-                page = requests.get(urlSub, headers=headers, stream=True)
+
+                page = requests.get(url, headers=headers)
                 soup = BeautifulSoup(page.content, "html.parser")
 
-                pub_date = soup.findAll('p', {'class':'p-muted-heading'})
-                try:
-                    res1 = dateConvert()
-                    pub_date = res1.dateCon(pub_date)
-                except:	
-                    pub_date = ''
+                if not self.daily:
+                    if re.findall(r'404: Page not found', str(soup)):
+                        break
 
-                cves = re.findall(r'CVE-\d+-\d+', str(soup), re.IGNORECASE)
-                cves = ','.join(list(set(cves)))
+                articles = soup.findAll('article',{'class':'notice'})
 
-                if soup.findAll('section', {'class':'p-strip--suru-topped'}):
-                    sections = soup.findAll('section', {'class':'p-strip--suru-topped'})
-                    divs = sections[0].findAll('div', {'class':'row'})
-                else:
-                    divs = []
+                for article in tqdm(articles):
+                    aTag = article.findAll('a')
+                
+                    aUrl = aTag[0].get('href')
+                    aUrl = "https://ubuntu.com%s" % aUrl
+                    name = article.findAll('h3')[0].text
+                    name = name[:-2]
+                    name = name.replace("'", "")
 
-                summary = ''	
-                if len(divs) > 0:
-                    for div1 in divs:
-                        for div in div1.findAll('div', {'class':'row'}):
+                    urlSub = aUrl
+                    usn = urlSub.split("/")[-1]
+                    usn_id = usn
+                
+                    reference = "https://ubuntu.com/security/notices/%s" % usn_id
+
+                    cwe_id = {}
+                    cwe_id['data'] = []
+
+                    refe = {}
+                    refe['data'] = []
+                    refe['data'].append(reference)
+
+                    desc = {}
+                    desc['ubuntu'] = name
+
+                    basemetricv2_data = {}
+                    basemetricv3_data = {}
+
+                    headers = requests.utils.default_headers()
+                    headers.update({
+                        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
+                    })
+
+                    page = requests.get(urlSub, headers=headers, stream=True)
+                    soup = BeautifulSoup(page.content, "html.parser")
+
+                    pub_date = soup.findAll('p', {'class':'p-muted-heading'})
+                    try:
+                        res1 = dateConvert()
+                        pub_date = res1.dateCon(pub_date)
+                    except:	
+                        pub_date = ''
+
+                    cves = re.findall(r'CVE-\d+-\d+', str(soup), re.IGNORECASE)
+                    cves = ','.join(list(set(cves)))
+
+                    if soup.findAll('section', {'class':'p-strip--suru-topped'}):
+                        sections = soup.findAll('section', {'class':'p-strip--suru-topped'})
+                        divs = sections[0].findAll('div', {'class':'row'})
+                    else:
+                        divs = []
+
+                    summary = ''	
+                    if len(divs) > 0:
+                        for div in divs:
+                            #for div in div1.findAll('div', {'class':'row'}):
                             if re.findall(r'<h2>Details', str(div)):
                                 desc = div.text
                                 desc = desc.strip()
@@ -574,7 +584,6 @@ class moniUbuntuDB():
                             if re.findall(r'Update instructions', str(div)):
                                 h5Array = div.findAll('h5')
                                 ulArray = div.findAll('ul')
-
                                 ulA = []
                                 h5A = []
                                 for h5 in h5Array:
@@ -590,170 +599,177 @@ class moniUbuntuDB():
 
                                 dictA = dict(zip(ulA, h5A))
 
-                    platformArray = []
-                    infectedPackageDetails = {}
-                    infectedPackageDetails["details"] = []
-                    for k, v in dictA.items():
-                        product = k.split(" - ")[0]
-                        try:
-                            version = k.split(" - ")[1]
-                        except:
-                            version = ''
-                        
-                        platform_os = v
-
-                        res = {}
-                        res["product"] = str(product)
-                        res["versions"] = str(version)
-                        res["platform"] = platform_os
-                        platformArray.append(platform_os)
-                        infectedPackageDetails["details"].append(res)
-
-                    platform = ','.join(platformArray)
-                    infectedPackageDetails1 = str(infectedPackageDetails)
-
-                    for cve in cves.split(','):
-                        if re.findall(r'CVE-\d+-\d+', str(cve), re.IGNORECASE):
-                            cve = cve.upper()
-                            pkgVersDetails = self.getCVEDetails(cve)		
-                            if len(pkgVersDetails) > 0:
-                                infectedPackageDetails = {}
-                                infectedPackageDetails["details"] = pkgVersDetails["details"]
-                                if pkgVersDetails["pub_date"]:
-                                    pub_date = pkgVersDetails["pub_date"]
-                                infectedPackageDetails = infectedPackageDetails
-                        
-                            niahId = "NIAH-CVE-%s" % (cve)
-                            publisheddate = pub_date
-                            lastmodifieddate = pub_date
-                            data_type = 'CVE'
-                            data_id = cve
-                            niah_version_id = "NIAH-VERSION-PLATFORM-UBUNTU-%s" % (cve.upper())
+                        platformArray = []
+                        infectedPackageDetails = {}
+                        infectedPackageDetails["details"] = []
+                        for k, v in dictA.items():
+                            product = k.split(" - ")[0]
+                            try:
+                                version = k.split(" - ")[1]
+                            except:
+                                version = ''
                             
-                            results = {}
+                            platform_os = v
 
-                            for det in infectedPackageDetails['details']:
-                                product = det['product']
-                                platform = det['platform']
-                                versions = det['versions']
+                            res = {}
+                            res["product"] = str(product)
+                            res["versions"] = str(version)
+                            res["platform"] = platform_os
+                            platformArray.append(platform_os)
+                            infectedPackageDetails["details"].append(res)
 
-                                niah_product_id = "NIAH-PLATFORM-UBUNTU-%s" % (product.upper())
+                        platform = ','.join(platformArray)
+                        infectedPackageDetails1 = str(infectedPackageDetails)
+
+                        for cve in cves.split(','):
+                            if re.findall(r'CVE-\d+-\d+', str(cve), re.IGNORECASE):
+                                cve = cve.upper()
+                                pkgVersDetails = self.getCVEDetails(cve)		
+                                if len(pkgVersDetails) > 0:
+                                    infectedPackageDetails = {}
+                                    infectedPackageDetails["details"] = pkgVersDetails["details"]
+                                    if pkgVersDetails["pub_date"]:
+                                        pub_date = pkgVersDetails["pub_date"]
+                                    infectedPackageDetails = infectedPackageDetails
+                            
+                                niahId = "NIAH-CVE-%s" % (cve)
+                                publisheddate = pub_date
+                                lastmodifieddate = pub_date
+                                data_type = 'CVE'
+                                data_id = cve
+                                niah_version_id = "NIAH-VERSION-PLATFORM-UBUNTU-%s" % (cve.upper())
                                 
+                                results = {}
 
-                                res = {}
-                                res['platform'] = 'linux'
-                                res['os'] = 'ubuntu'
-                                
-                                vendor = ''
-                                advisory = 'ubuntu'
-                                type = 'platform'
+                                for det in infectedPackageDetails['details']:
+                                    product = det['product']
+                                    platform = det['platform']
+                                    versions = det['versions']
+
+                                    niah_product_id = "NIAH-PLATFORM-UBUNTU-%s" % (product.upper())
+                                    
+
+                                    res = {}
+                                    res['platform'] = 'linux'
+                                    res['os'] = 'ubuntu'
+                                    
+                                    vendor = ''
+                                    advisory = 'ubuntu'
+                                    type = 'platform'
+
+                                    self.connection = psycopg2.connect(user=self.userName,password=self.password,host=self.hostName,port="5432",database=self.databaseName)
+                                    self.cursor = self.connection.cursor()
+                                    if niah_product_id not in self.product_entry:
+                                        query = "INSERT INTO product_reference_tab(niah_product_id, product, vendor, type, advisory, data, revision) values('%s', '%s', '%s', '%s', '%s', '%s', '0')" % (niah_product_id, product, vendor, type, advisory, json.dumps(res))
+                                        self.cursor.execute(query)
+                                        self.connection.commit()
+                                        self.product_entry[niah_product_id] = '0'
+
+                                        updated_cves['product_ids'].append(niah_product_id)
+
+                                        query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_product_id, 'indev', date_update, '0')
+                                        self.cursor.execute(query)
+                                        self.connection.commit()
+
+
+                                    res = {}
+                                    res['product'] = product
+                                    res['versions'] = versions
+                                    res['version'] = "[0.0:%s)" % versions
+                                    res['platform'] = platform
+                                    res['advisoryid'] = usn_id
+                                    res['patch'] = "upgrade %s to %s" % (platform, versions)
+                
+                                    if niah_product_id not in results:
+                                        results[niah_product_id] = []
+
+                                    if res not in results[niah_product_id]:
+                                        results[niah_product_id].append(res)
+
+                                check = True
+                                affected_products_versions = []
+                                affected_products_versions.append(niah_version_id)
+
+                                if niahId in self.niahid_entry:
+                                    revision = int(self.niahid_entry[niahId]['revision']) + 1
+                                    if lastmodifieddate == self.niahid_entry[niahId]['lastmodifieddate']:
+                                        check = False
+                                    self.niahid_entry[niahId]['revision'] = int(self.niahid_entry[niahId]['revision']) + 1
+                                    self.niahid_entry[niahId]['lastmodifieddate'] = lastmodifieddate
+
+                                    fetchData = self.check_niahid_entry(niahId)
+                                    if fetchData:
+                                        affected_products_versions_old = fetchData[0][7]
+                                        cwe_id = fetchData[0][0]
+                                        refe = fetchData[0][1]
+                                        refe['data'].append(reference)
+                                        desc1 = fetchData[0][2]
+                                        desc = fetchData[0][2]
+                                        try:
+                                            desc['ubuntu'] = name
+                                        except:
+                                            desc = desc1
+                                        basemetricv3_data = fetchData[0][3]
+                                        basemetricv2_data = fetchData[0][4]
+
+                                        for affected_version_nu in affected_products_versions_old:
+                                            if affected_version_nu not in affected_products_versions:
+                                                affected_products_versions.append(affected_version_nu)
+                                else:
+                                    revision = '0'
+                                    self.niahid_entry[niahId] = {}
+                                    self.niahid_entry[niahId]['lastmodifieddate'] = lastmodifieddate
+                                    self.niahid_entry[niahId]['revision'] = '0'
+
 
                                 self.connection = psycopg2.connect(user=self.userName,password=self.password,host=self.hostName,port="5432",database=self.databaseName)
                                 self.cursor = self.connection.cursor()
-                                if niah_product_id not in self.product_entry:
-                                    query = "INSERT INTO product_reference_tab(niah_product_id, product, vendor, type, advisory, data, revision) values('%s', '%s', '%s', '%s', '%s', '%s', '0')" % (niah_product_id, product, vendor, type, advisory, json.dumps(res))
-                                    self.cursor.execute(query)
-                                    self.connection.commit()
-                                    self.product_entry[niah_product_id] = '0'
-
-                                    query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_product_id, 'indev', date_update, '0')
-                                    self.cursor.execute(query)
-                                    self.connection.commit()
-
-
-                                res = {}
-                                res['product'] = product
-                                res['versions'] = versions
-                                res['platform'] = platform
-                                res['advisoryid'] = usn_id
-                                res['patch'] = "upgrade to %s" % versions
-            
-                                if niah_product_id not in results:
-                                    results[niah_product_id] = []
-
-                                if res not in results[niah_product_id]:
-                                    results[niah_product_id].append(res)
-
-                            check = True
-                            affected_products_versions = []
-                            affected_products_versions.append(niah_version_id)
-
-                            if niahId in self.niahid_entry:
-                                revision = int(self.niahid_entry[niahId]['revision']) + 1
-                                if lastmodifieddate == self.niahid_entry[niahId]['lastmodifieddate']:
-                                    check = False
-                                self.niahid_entry[niahId]['revision'] = int(self.niahid_entry[niahId]['revision']) + 1
-                                self.niahid_entry[niahId]['lastmodifieddate'] = lastmodifieddate
-
-                                fetchData = self.check_niahid_entry(niahId)
-                                if fetchData:
-                                    affected_products_versions_old = fetchData[0][7]
-                                    cwe_id = fetchData[0][0]
-                                    refe = fetchData[0][1]
-                                    refe['data'].append(reference)
-                                    desc1 = fetchData[0][2]
-                                    desc = fetchData[0][2]
+                                if check:
                                     try:
-                                        desc['ubuntu'] = name
-                                    except:
-                                        desc = desc1
-                                    basemetricv3_data = fetchData[0][3]
-                                    basemetricv2_data = fetchData[0][4]
-
-                                    for affected_version_nu in affected_products_versions_old:
-                                        if affected_version_nu not in affected_products_versions:
-                                            affected_products_versions.append(affected_version_nu)
-                            else:
-                                revision = '0'
-                                self.niahid_entry[niahId] = {}
-                                self.niahid_entry[niahId]['lastmodifieddate'] = lastmodifieddate
-                                self.niahid_entry[niahId]['revision'] = '0'
-
-
-                            self.connection = psycopg2.connect(user=self.userName,password=self.password,host=self.hostName,port="5432",database=self.databaseName)
-                            self.cursor = self.connection.cursor()
-                            if check:
-                                try:
-                                    query = "INSERT INTO vuln_tab(niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision)VALUES('{niahId}', '{data_type}', '{data_id}', '{cwe_ids}', '{references}', '{description}', '{baseMetricV3}', '{baseMetricV2}', '{publishedDate}', '{lastModifiedDate}', '{affected_products_versions}', '1', 'indev', '{revision}');".format(niahId=niahId, data_type=data_type, data_id=data_id, cwe_ids=json.dumps(cwe_id), references=json.dumps(refe), description=json.dumps(desc), baseMetricV2=json.dumps(basemetricv2_data), baseMetricV3=json.dumps(basemetricv3_data), publishedDate=publisheddate, lastModifiedDate=lastmodifieddate, affected_products_versions=json.dumps(affected_products_versions), revision=revision)
-                                    self.cursor.execute(query)
-                                    self.connection.commit()
-                                except:
-                                    try:
-                                        desc = desc1
                                         query = "INSERT INTO vuln_tab(niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision)VALUES('{niahId}', '{data_type}', '{data_id}', '{cwe_ids}', '{references}', '{description}', '{baseMetricV3}', '{baseMetricV2}', '{publishedDate}', '{lastModifiedDate}', '{affected_products_versions}', '1', 'indev', '{revision}');".format(niahId=niahId, data_type=data_type, data_id=data_id, cwe_ids=json.dumps(cwe_id), references=json.dumps(refe), description=json.dumps(desc), baseMetricV2=json.dumps(basemetricv2_data), baseMetricV3=json.dumps(basemetricv3_data), publishedDate=publisheddate, lastModifiedDate=lastmodifieddate, affected_products_versions=json.dumps(affected_products_versions), revision=revision)
                                         self.cursor.execute(query)
-                                        self.connection.commit()        
+                                        self.connection.commit()
                                     except:
-                                        pass
+                                        try:
+                                            desc = desc1
+                                            query = "INSERT INTO vuln_tab(niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision)VALUES('{niahId}', '{data_type}', '{data_id}', '{cwe_ids}', '{references}', '{description}', '{baseMetricV3}', '{baseMetricV2}', '{publishedDate}', '{lastModifiedDate}', '{affected_products_versions}', '1', 'indev', '{revision}');".format(niahId=niahId, data_type=data_type, data_id=data_id, cwe_ids=json.dumps(cwe_id), references=json.dumps(refe), description=json.dumps(desc), baseMetricV2=json.dumps(basemetricv2_data), baseMetricV3=json.dumps(basemetricv3_data), publishedDate=publisheddate, lastModifiedDate=lastmodifieddate, affected_products_versions=json.dumps(affected_products_versions), revision=revision)
+                                            self.cursor.execute(query)
+                                            self.connection.commit()        
+                                        except:
+                                            pass
+                                    
+                                    updated_cves['niah_ids'].append(niahId)
 
-                                self.connection = psycopg2.connect(user=self.userName,password=self.password,host=self.hostName,port="5432",database=self.databaseName)
-                                self.cursor = self.connection.cursor()
-                                query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'cve', niahId, 'indev', date_update, revision)
-                                self.cursor.execute(query)
-                                self.connection.commit()
-                                
-                                if niah_version_id in self.versions_entry:
-                                    revision = int(self.versions_entry[niah_version_id]) + 1
-                                    self.versions_entry[niah_version_id] = int(self.versions_entry[niah_version_id]) + 1
-                                else:
-                                    revision = 0  
-                                    self.versions_entry[niah_version_id] = revision
+                                    self.connection = psycopg2.connect(user=self.userName,password=self.password,host=self.hostName,port="5432",database=self.databaseName)
+                                    self.cursor = self.connection.cursor()
+                                    query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'cve', niahId, 'indev', date_update, revision)
+                                    self.cursor.execute(query)
+                                    self.connection.commit()
+                                    
+                                    if niah_version_id in self.versions_entry:
+                                        revision = int(self.versions_entry[niah_version_id]) + 1
+                                        self.versions_entry[niah_version_id] = int(self.versions_entry[niah_version_id]) + 1
+                                    else:
+                                        revision = 0  
+                                        self.versions_entry[niah_version_id] = revision
 
-                                self.connection = psycopg2.connect(user=self.userName,password=self.password,host=self.hostName,port="5432",database=self.databaseName)
-                                self.cursor = self.connection.cursor()
-                                query = "INSERT INTO affected_versions_tab(niah_version_id, versions, revision) values('%s', '%s', '%s')" % (niah_version_id, json.dumps(results), revision)
-                                self.cursor.execute(query)
-                                self.connection.commit()
+                                    self.connection = psycopg2.connect(user=self.userName,password=self.password,host=self.hostName,port="5432",database=self.databaseName)
+                                    self.cursor = self.connection.cursor()
+                                    query = "INSERT INTO affected_versions_tab(niah_version_id, versions, revision) values('%s', '%s', '%s')" % (niah_version_id, json.dumps(results), revision)
+                                    self.cursor.execute(query)
+                                    self.connection.commit()
 
-                                message = "(NIAH-VULN-ID : %s) %s CVE updated for Debian Platform" % (niahId, data_id)
-                                res = check_alerts()
-                                res.update_alerts('cve_id', data_id, lastmodifieddate, message)
+                                    message = "(NIAH-VULN-ID : %s) %s CVE updated for Debian Platform" % (niahId, data_id)
+                                    res = check_alerts()
+                                    res.update_alerts('cve_id', data_id, lastmodifieddate, message)
 
 
-            i1 = i1 + 1
+            i1 = i1 + 10
             if self.daily:
-                if i1 > 1:
+                if i1 > 10:
                     break
+
+        return updated_cves
             
 
 if __name__ == "__main__":
