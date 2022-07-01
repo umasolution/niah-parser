@@ -64,12 +64,48 @@ class debianParser():
             })
             page = requests.get(url, headers=headers)
             results = xmltodict.parse(page.content)
-            for item in tqdm(results['rdf:RDF']['item']):
-                link = item['link']
-                packagename = self.get_package(link, platform)
-                update_array['updated'].append(packagename)
+            if 'item' in results['rdf:RDF']:
+                for item in tqdm(results['rdf:RDF']['item']):
+                    link = item['link']
+                    res = self.get_package(link, platform)
+                    packagename = res['package']
+                    update_array['updated'].append(packagename)
 
         return update_array
+
+    def get_pkg_details(self, package, platform=None):
+        results = {}
+
+        if platform:
+            link = "https://packages.debian.org/%s/%s" % (platform, package)
+            results[platform] = self.get_package(link, platform, package)
+        else:
+            link = "https://packages.debian.org/experimental/"
+
+            headers = requests.utils.default_headers()
+            headers.update({
+                'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
+            })
+
+            page = requests.get(link, headers=headers)
+            soup = BeautifulSoup(page.content, "html.parser")
+
+            platform_url = []
+
+            contents_div = soup.findAll('div', {'id': 'content'})[0]
+            atag_div = contents_div.findAll('div', {'id': 'pothers'})[0]
+
+            for atag in atag_div.findAll('a'):
+                platform = atag.text.strip()
+                platform_url.append(platform)
+
+            print("[ INFO ] Found %s platforms" % ','.join(platform_url))
+
+            for platform in platform_url:
+                link = "https://packages.debian.org/%s/%s" % (platform, package)
+                results[platform] = self.get_package(link, platform, package)
+            
+        return results
 
 
     def intialize(self):
@@ -123,16 +159,21 @@ class debianParser():
                 if not os.path.isdir(target_dir):
                     os.system("mkdir %s" % target_dir)
 
-                with open("%s.json" % platform, "r") as f:
-                    pkgjson = json.load(f)
+                check = True
+                try:
+                    with open("%s.json" % platform, "r") as f:
+                        pkgjson = json.load(f)
+                except:
+                    check = False
 
-                for package in pkgjson:
-                    target_dir = '/var/DB/packages/platforms/debian/%s/%s' % (platform, package)
-                    if not os.path.isdir(target_dir):
-                        link = "https://packages.debian.org/%s/%s" % (platform, package)
-                        print(link)
-                        self.get_package(link, platform, package)
-            
+                if check:
+                    for package in pkgjson:
+                        target_dir = '/var/DB/packages/platforms/debian/%s/%s' % (platform, package)
+                        if not os.path.isdir(target_dir):
+                            link = "https://packages.debian.org/%s/%s" % (platform, package)
+                            print(link)
+                            self.get_package(link, platform, package)
+                
 
     def get_package(self, link, platform, packagename=False):
         headers = requests.utils.default_headers()
@@ -256,7 +297,7 @@ class debianParser():
         if changelog_link:
             self.extract_changelog(changelog_link, target_dir)
 
-        return packagename
+        return res
 
 if __name__ == "__main__":
     now = datetime.datetime.now()

@@ -18,7 +18,6 @@ sys.setrecursionlimit(50000)
 class ubuntuParser():
     def __init__(self):
         self.daily = True
-
     
     def extract_copyright(self, link, target_dir):
         headers = requests.utils.default_headers()
@@ -64,12 +63,47 @@ class ubuntuParser():
             })
             page = requests.get(url, headers=headers)
             results = xmltodict.parse(page.content)
-            for item in tqdm(results['rdf:RDF']['item']):
-                link = item['link']
-                packagename = self.get_package(link, platform)
-                update_array['updated'].append(packagename)
+            if 'item' in results['rdf:RDF']:
+                for item in tqdm(results['rdf:RDF']['item']):
+                    link = item['link']
+                    res = self.get_package(link, platform)
+                    packagename = res['package']
+                    update_array['updated'].append(packagename)
 
         return update_array
+
+    def get_pkg_details(self, package, platform=None):
+        results = {}
+
+        if platform:
+            link = "https://packages.ubuntu.com/%s/%s" % (platform, package)
+            results[platform] = self.get_package(link, platform, package)
+        else:
+            link = "https://packages.ubuntu.com/"
+
+            headers = requests.utils.default_headers()
+            headers.update({
+                'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
+            })
+
+            page = requests.get(link, headers=headers)
+            soup = BeautifulSoup(page.content, "html.parser")
+
+            platform_url = []
+
+            contents_div = soup.findAll('div', {'id': 'content'})[0]
+            uls = contents_div.findAll('ul')[0]
+            for atag in uls.findAll('a'):
+                platform = atag.text.strip()
+                platform_url.append(platform)
+
+            print("[ INFO ] Found %s platforms" % ','.join(platform_url))
+
+            for platform in platform_url:
+                link = "https://packages.ubuntu.com/%s/%s" % (platform, package)
+                results[platform] = self.get_package(link, platform, package)
+
+        return results
 
     def intialize(self):
         link = "https://packages.ubuntu.com/"
@@ -252,7 +286,7 @@ class ubuntuParser():
         if changelog_link:
             self.extract_changelog(changelog_link, target_dir)
 
-        return packagename
+        return res
 
 if __name__ == "__main__":
     now = datetime.datetime.now()
