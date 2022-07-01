@@ -19,7 +19,6 @@ class debianParser():
     def __init__(self):
         self.daily = True
 
-    
     def extract_copyright(self, link, target_dir):
         headers = requests.utils.default_headers()
         headers.update({

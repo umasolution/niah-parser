@@ -1,3 +1,4 @@
+from platform import platform
 from textwrap import indent
 import requests
 from bs4 import BeautifulSoup
@@ -337,6 +338,119 @@ class get_license():
 
         return False
 
+
+    def gen_debian_license(self, date_update):
+        github_array = {}
+        github_array['data'] = []
+
+        print("[ OK ] Debian License generation")
+        results = {}
+        results['update'] = date_update
+        results['data'] = {}
+
+        for f_name in tqdm(glob('/var/DB/packages/platforms/debian/*/*/copyright.txt')):
+            print(f_name)
+            if re.findall(r'\/var\/DB\/packages\/platforms\/debian\/.*\/(.*)\/copyright.txt', str(f_name)):
+                packagename = re.findall(r'\/var\/DB\/packages\/platforms\/debian\/.*\/(.*)\/copyright.txt', str(f_name))[0]
+            else:
+                packagename = ''
+
+            if re.findall(r'\/var\/DB\/packages\/platforms\/debian\/(.*)\/.*\/copyright.txt', str(f_name)):
+                platform = re.findall(r'\/var\/DB\/packages\/platforms\/debian\/(.*)\/.*\/copyright.txt', str(f_name))[0]
+            else:
+                platform = ''
+
+            with open(f_name, "r") as f:
+                fdata = f.read()
+
+            license_text = ''
+
+            if re.findall(r'License\:\s(.*)', str(fdata)):
+                license_text = re.findall(r'License\:\s(.*)', str(fdata))[0]
+            else:             
+                license_text = self.check_license_str(fdata)
+            
+            if packagename and platform:
+                if platform not in results['data']:
+                    results['data'][platform] = {}
+            
+                results['data'][platform][packagename] = license_text
+
+            if re.findall(r'Source:\s(http.*)', str(fdata)):
+                github_url = re.findall(r'Source:\s(http.*)', str(fdata))[0]
+            
+                res = {}
+                res['packagename'] = packagename
+                res['platform'] = platform
+                res['license'] = license_text
+                res['github'] = github_url
+
+                github_array['data'].append(res)
+
+        with open("/var/DB/feeds/packages/debian_license.json", "w") as outfile:
+            json.dump(results, outfile, indent=2)
+
+        with open("/var/DB/feeds/packages/debian_source.json", "w") as outfile:
+            json.dump(github_array, outfile, indent=2)
+
+    def gen_ubuntu_license(self, date_update):
+        print("[ OK ] Ubuntu License generation")
+        github_array = {}
+        github_array['data'] = []
+
+        results = {}
+        results['update'] = date_update
+        results['data'] = {}
+
+        for f_name in tqdm(glob('/var/DB/packages/platforms/ubuntu/*/*/copyright.txt')):
+            print(f_name)
+            if re.findall(r'\/var\/DB\/packages\/platforms\/ubuntu\/.*\/(.*)\/copyright.txt', str(f_name)):
+                packagename = re.findall(r'\/var\/DB\/packages\/platforms\/ubuntu\/.*\/(.*)\/copyright.txt', str(f_name))[0]
+            else:
+                packagename = ''
+
+            if re.findall(r'\/var\/DB\/packages\/platforms\/ubuntu\/(.*)\/.*\/copyright.txt', str(f_name)):
+                platform = re.findall(r'\/var\/DB\/packages\/platforms\/ubuntu\/(.*)\/.*\/copyright.txt', str(f_name))[0]
+            else:
+                platform = ''
+
+            with open(f_name, "r") as f:
+                fdata = f.read()
+
+            license_text = ''
+
+            if re.findall(r'License\:\s(.*)', str(fdata)):
+                license_text = re.findall(r'License\:\s(.*)', str(fdata))[0]
+            else:             
+                license_text = self.check_license_str(fdata)
+            
+            if not license_text:
+                license_text = ''
+
+            if packagename and platform:
+                if platform not in results['data']:
+                    results['data'][platform] = {}
+            
+                results['data'][platform][packagename] = license_text
+
+            if re.findall(r'Source:\s(http.*)', str(fdata)):
+                github_url = re.findall(r'Source:\s(http.*)', str(fdata))[0]
+            
+                res = {}
+                res['packagename'] = packagename
+                res['platform'] = platform
+                res['license'] = license_text
+                res['github'] = github_url
+
+                github_array['data'].append(res)
+
+        with open("/var/DB/feeds/packages/ubuntu_license.json", "w") as outfile:
+            json.dump(results, outfile, indent=2)
+
+        with open("/var/DB/feeds/packages/ubuntu_source.json", "w") as outfile:
+            json.dump(github_array, outfile, indent=2)
+
+
 if __name__ == "__main__":
     now = datetime.datetime.now()
     date_update = "%s" % now.strftime("%Y-%m-%d %H:%M:%S")
@@ -348,8 +462,12 @@ if __name__ == "__main__":
     #res.npmParser(package)
     #res.pypiParser(package)
     #res.composerParser(package)
-    res.gen_pypi_license(date_update)
-    res.gen_composer_license(date_update)
-    res.gen_npm_license(date_update)
-    res.gen_maven_license(date_update)
+
+    #res.gen_pypi_license(date_update)
+    #res.gen_composer_license(date_update)
+    #res.gen_npm_license(date_update)
+    #res.gen_maven_license(date_update)
+    res.gen_ubuntu_license(date_update)
+    res.gen_debian_license(date_update)
+
     
