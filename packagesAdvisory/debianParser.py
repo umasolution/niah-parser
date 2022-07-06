@@ -17,7 +17,7 @@ sys.setrecursionlimit(50000)
 
 class debianParser():
     def __init__(self):
-        self.daily = True
+        self.daily = False
 
     def extract_copyright(self, link, target_dir):
         headers = requests.utils.default_headers()
@@ -55,6 +55,10 @@ class debianParser():
         update_array['updated'] = []
 
         for platform in platforms:
+            target_dir = "/var/DB/packages/platforms/debian/%s" % platform
+            if not os.path.isdir(target_dir):
+                os.system("mkdir %s" % target_dir)
+
             print("[ INFO ] %s platform rss fetching started" % platform)
             url = "https://packages.debian.org/%s/main/newpkg?format=rss" % platform
             headers = requests.utils.default_headers()
