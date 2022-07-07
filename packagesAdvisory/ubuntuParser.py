@@ -17,7 +17,7 @@ sys.setrecursionlimit(50000)
 
 class ubuntuParser():
     def __init__(self):
-        self.daily = False
+        self.daily = True
     
     def extract_copyright(self, link, target_dir):
         headers = requests.utils.default_headers()
