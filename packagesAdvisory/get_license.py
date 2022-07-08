@@ -463,10 +463,10 @@ if __name__ == "__main__":
     #res.pypiParser(package)
     #res.composerParser(package)
 
-    #res.gen_pypi_license(date_update)
-    #res.gen_composer_license(date_update)
-    #res.gen_npm_license(date_update)
-    #res.gen_maven_license(date_update)
+    res.gen_pypi_license(date_update)
+    res.gen_composer_license(date_update)
+    res.gen_npm_license(date_update)
+    res.gen_maven_license(date_update)
     res.gen_ubuntu_license(date_update)
     res.gen_debian_license(date_update)
 
