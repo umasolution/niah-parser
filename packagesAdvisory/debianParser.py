@@ -188,7 +188,7 @@ class debianParser():
         soup = BeautifulSoup(page.content, "html.parser")
         
         if not packagename:
-            packagename = re.findall(r'^(.*?)-\d', str(soup))[0]
+            packagename = re.findall(r'\/main\/(.*)', str(link))[0]
 
         description = ''
         try:

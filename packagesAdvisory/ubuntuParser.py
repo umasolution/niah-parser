@@ -178,7 +178,7 @@ class ubuntuParser():
         soup = BeautifulSoup(page.content, "html.parser")
         
         if not packagename:
-            packagename = re.findall(r'\/main\/(.*?)-\d', str(link))[0]
+            packagename = re.findall(r'\/main\/(.*)', str(link))[0]
 
         description = ''
         try:
