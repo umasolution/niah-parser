@@ -6,7 +6,7 @@ from time import sleep
 import os
 import sys
 import re
-from languageAdvisory.github_advisory_db import GHSAdvisory
+from languageAdvisory.github_advisory import GHSAdvisory
 from time import gmtime, strftime
 import configparser
 import logging
