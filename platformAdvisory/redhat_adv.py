@@ -18,6 +18,8 @@ import json
 from tqdm import tqdm
 #from lib.alearts_manage import check_alerts
 #from lib.dateConvert import dateConvert
+from datetime import timedelta
+
 
 class moniRedhatDB():
     def __init__(self):
@@ -258,9 +260,15 @@ class moniRedhatDB():
 
 
     def get_resource(self, url):
-        response = requests.get(url)
-        jsonData = response.json()
-
+        try:
+            response = requests.get(url)
+            jsonData = response.json()
+        except:
+            print("[ OK ] In sleep for 120 sec")
+            time.sleep(120)
+            response = requests.get(url)
+            jsonData = response.json()
+        
         published = jsonData['public_date']
         reference = ''
         cwe_id = ''
@@ -329,14 +337,23 @@ class moniRedhatDB():
         return results
     
     def get_rss(self, date_update):
-        i = 1
-
-        while True:
-            response = requests.get('https://access.redhat.com/hydra/rest/securitydata/cve.json?page=%s' % i)
+        yesterday = datetime.datetime.today() - timedelta(days = 1 )
+        datetime_search = yesterday.isoformat()
+        print(datetime_search)
+        #response = requests.get('https://access.redhat.com/hydra/rest/securitydata/cve.json?page=%s' % i)
+        try:
+            response = requests.get('https://access.redhat.com/hydra/rest/securitydata/cve.json?after=%s' % datetime_search)
             jsonData = response.json()
-            if len(jsonData) == 0:
-                break
+        except:
+            print("[ OK ] In sleep for 120 sec")
+            time.sleep(120)
+            response = requests.get('https://access.redhat.com/hydra/rest/securitydata/cve.json?after=%s' % datetime_search)
+            jsonData = response.json()
 
+        print(jsonData)
+        if len(jsonData) == 0:
+            print("[ OK ] Not Update found")
+        else:
             print("[ OK ] total data - %s" % len(jsonData))
             for data in jsonData:
                 resource_url = data['resource_url']
@@ -344,9 +361,6 @@ class moniRedhatDB():
                 results = self.get_resource(resource_url)
                 
                 self.parse_json(results, date_update)
-            
-            i = i + 1
-
 
 if __name__ == "__main__":
     now = datetime.datetime.now()

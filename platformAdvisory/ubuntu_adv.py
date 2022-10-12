@@ -417,7 +417,7 @@ class moniUbuntuDB():
             res['references'] = references
             res['cve_id'] = cve_id
             res['releases_packages'] = releases_packages
-            self.parse_json(res)
+            self.parse_json(res, date_update)
 
     def run_cmd(self):
         os.system("sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1")
@@ -617,5 +617,6 @@ if __name__ == "__main__":
     now = datetime.datetime.now()
     date_update = "%s" % now.strftime("%Y-%m-%d %H:%M:%S")
     res = moniUbuntuDB()
-    #res.init_json(date_update)
-    res.getrss(date_update)
+    res.init_json(date_update)
+    #res.getrss(date_update)
+    #res.sync_ubuntu_json(date_update)

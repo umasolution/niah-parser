@@ -158,13 +158,14 @@ class GHSAdvisory():
         #cmd = "sudo sysctl -p"
         #status, output = getstatusoutput(cmd)
 
-        #cmd = "rm -rf advisory-database"
-        #print(cmd)
-        #status, output = getstatusoutput(cmd)
+        cmd = "rm -rf advisory-database"
+        print(cmd)
+        status, output = getstatusoutput(cmd)
 
-        #cmd = "git clone --depth 1 https://github.com/github/advisory-database.git"
-        #print(cmd)
-        #status, output = getstatusoutput(cmd)
+        cmd = "git clone --depth 1 https://github.com/github/advisory-database.git"
+        print(cmd)
+        status, output = getstatusoutput(cmd)
+        print(output)
 
         for filename in glob.iglob('advisory-database/advisories/github-reviewed/**/*.json', recursive = True):
             print(filename)

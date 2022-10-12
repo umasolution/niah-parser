@@ -61,6 +61,7 @@ class ubuntuParser():
 
             print("[ INFO ] %s platform rss fetching started" % platform)
             url = "https://packages.ubuntu.com/%s/main/newpkg?format=rss" % platform
+            print("RSS - Link - %s" % url)
             headers = requests.utils.default_headers()
             headers.update({
                 'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
@@ -70,6 +71,7 @@ class ubuntuParser():
             if 'item' in results['rdf:RDF']:
                 for item in tqdm(results['rdf:RDF']['item']):
                     link = item['link']
+                    print("1 - %s" % link)
                     res = self.get_package(link, platform)
                     packagename = res['package']
                     update_array['updated'].append(packagename)
@@ -110,6 +112,8 @@ class ubuntuParser():
         return results
 
     def intialize(self):
+        escape_arry = ['bionic', 'bionic-updates', 'bionic-backports', 'focal', 'focal-updates', 'focal-backports', 'impish', 'impish-updates', 'impish-backports', 'jammy']
+
         link = "https://packages.ubuntu.com/"
 
         headers = requests.utils.default_headers()
@@ -126,10 +130,12 @@ class ubuntuParser():
         uls = contents_div.findAll('ul')[0]
         for atag in uls.findAll('a'):
             platform = atag.text.strip()
-            platform_url.append(platform)
+            if platform not in escape_arry:
+                platform_url.append(platform)
 
         print("[ INFO ] Found %s platforms" % ','.join(platform_url))
 
+        print(platform_url)
         if self.daily:
             print("[ INFO ] Rss fetching")
             update_array = self.rssfeed(platform_url)
@@ -155,7 +161,7 @@ class ubuntuParser():
             for platform in platform_url:
                 target_dir = "/var/DB/packages/platforms/ubuntu/%s" % platform
                 if not os.path.isdir(target_dir):
-                    os.system("mkdir %s" % target_dir)
+                    os.system("mkdir -p %s" % target_dir)
 
                 with open("%s.json" % platform, "r") as f:
                     pkgjson = json.load(f)
@@ -169,6 +175,7 @@ class ubuntuParser():
 
 
     def get_package(self, link, platform, packagename=False):
+        print("Package - Url - %s" % link)
         headers = requests.utils.default_headers()
         headers.update({
             'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
@@ -276,7 +283,7 @@ class ubuntuParser():
             results['current'] = res
             results['versions'].append(res)
         else:
-            os.system("mkdir %s" % target_dir)
+            os.system("mkdir -p %s" % target_dir)
             results = {}
             results['current'] = res
             results['versions'] = []

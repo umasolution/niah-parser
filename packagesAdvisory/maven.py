@@ -84,11 +84,22 @@ class moniMaven():
             return soup
 
 
+    def rssFeed(self):
+        files = ["level-1.json", "level-2.json", "level-3.json", "level-4.json", "level-5.json", "level-6.json", "level-7.json"]
+        url = "https://mvnrepository.com/"
+        page_src = self.getPageSource_org(url)
+        print(page_src)
+        soup = BeautifulSoup(page_src, "html.parser")
+        print(url)
+        for div in soup.findAll('div', {'class': 'posts'}):
+            print(div)
+    
     def initialize(self, date_update):
+    
         url = "https://repo1.maven.org/maven2/"
         
         temp_arr = []
-
+        
         """
         # level-1
         urls = {}
@@ -105,7 +116,8 @@ class moniMaven():
         out_data = open("/var/DB/packages/maven/level-1.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-1 completed")
-        
+
+        """
 
         # level-2
         with open("/var/DB/packages/maven/level-1.json", "r") as f:
@@ -121,32 +133,31 @@ class moniMaven():
         for url in out_data['urls']:
             print("Progress - %s/%s" % (i, total))
             i = i + 1
-            if url not in temp_arr:
-                page_src = self.getPageSource(url)
-                soup = BeautifulSoup(page_src, "html.parser")
+            #if url not in temp_arr:
+            page_src = self.getPageSource(url)
+            soup = BeautifulSoup(page_src, "html.parser")
 
-                for a_tag in soup.findAll('a'):
-                    if re.findall(r'(\w+\/)', str(a_tag.text)):
-                        tagname = re.sub(r'/', '', str(a_tag.text))
-                        url_one = "%s/%s" % (url, tagname)
-                        
-                        page_src = self.getPageSource(url_one)
-                        soup = BeautifulSoup(page_src, "html.parser")
-                        if self.is_metadata_in(soup.findAll('a')):
-                            self.collectdb_json(url_one, tagname)
-                        else:
-                            urls['urls'].append(url_one)
+            for a_tag in soup.findAll('a'):
+                if re.findall(r'(\w+\/)', str(a_tag.text)):
+                    tagname = re.sub(r'/', '', str(a_tag.text))
+                    url_one = "%s/%s" % (url, tagname)
+                    
+                    page_src = self.getPageSource(url_one)
+                    soup = BeautifulSoup(page_src, "html.parser")
+                    if self.is_metadata_in(soup.findAll('a')):
+                        self.collectdb_json(url_one, tagname)
+                    else:
+                        urls['urls'].append(url_one)
 
-                temp_arr.append(url)
-                out_data = open("/var/DB/packages/maven/temp_arr.json", "w")
-                json.dump(temp_arr, out_data, indent=2)
-
+            temp_arr.append(url)
+            out_data = open("/var/DB/packages/maven/temp_arr.json", "w")
+            json.dump(temp_arr, out_data, indent=2)
 
         out_data = open("/var/DB/packages/maven/level-2.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-2 completed")
     
-        
+        """
         # level-3
         with open("/var/DB/packages/maven/level-2.json", "r") as f:
             out_data = json.load(f)
@@ -302,8 +313,6 @@ class moniMaven():
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-6 completed")
 
-        """
-
         # level-7
         with open("/var/DB/packages/maven/level-6.json", "r") as f:
             out_data = json.load(f)
@@ -341,7 +350,7 @@ class moniMaven():
         out_data = open("/var/DB/packages/maven/level-7.json", "w")
         json.dump(urls, out_data, indent=2)
         print("[ OK ] Level-7 completed")
-        
+        """    
 
 
     def collectdb_json(self, url_one, tagname):
@@ -492,4 +501,5 @@ if __name__ == "__main__":
     date_update = "%s" % now.strftime("%Y-%m-%d %H:%M:%S")
     res = moniMaven()
     res.initialize(date_update)
+    #res.rssFeed()
     #res.get_json_xml('https://repo1.maven.org/maven2/code/google/com/mgnlgroovy-scheduler/1.0.3/mgnlgroovy-scheduler-1.0.3.pom')

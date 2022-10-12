@@ -38,7 +38,7 @@ CREATE TABLE product_reference_tab(id SERIAL PRIMARY KEY, niah_product_id TEXT, 
 create table alerttabs(id SERIAL PRIMARY KEY, company_id text, team_id text, user_id text, alert_type text, alert_name text, alert_mode text, status VARCHAR(100), messages jsonb, last_update VARCHAR(200));
 
 #NEW
-CREATE TABLE vuln_tab(id SERIAL PRIMARY KEY, niahid TEXT UNIQUE, data_type VARCHAR(20), data_id TEXT, cwe_data jsonb, reference_data jsonb, description jsonb, basemetricv3_data jsonb, basemetricv2_data jsonb, publisheddate VARCHAR(20), lastmodifieddate VARCHAR(20), affected_products_versions jsonb, status VARCHAR(100), vuln_status VARCHAR(100), revision int UNIQUE);
+CREATE TABLE vuln_tab(id SERIAL PRIMARY KEY, niahid TEXT UNIQUE, data_type VARCHAR(20), data_id TEXT, cwe_data jsonb, reference_data jsonb, description jsonb, basemetricv3_data jsonb, basemetricv2_data jsonb, publisheddate VARCHAR(50), lastmodifieddate VARCHAR(50), affected_products_versions jsonb, status VARCHAR(100), vuln_status VARCHAR(100), revision int UNIQUE);
 CREATE TABLE affected_versions_tab(id SERIAL PRIMARY KEY, niah_version_id TEXT, versions jsonb, revision int, vuln_status VARCHAR(100));
 CREATE TABLE product_reference_tab(id SERIAL PRIMARY KEY, niah_product_id TEXT, product TEXT, vendor TEXT, advisory VARCHAR(200), type VARCHAR(200), data jsonb, revision int, vuln_status VARCHAR(100));
 ALTER TABLE vuln_tab ADD CONSTRAINT vuln_tab_id UNIQUE (revision, niahid);
@@ -266,257 +266,125 @@ class nvdGet():
             lastModifiedDate = cves['lastModifiedDate']
             niahId = "NIAH-%s-%s" % (data_type, data_id)
             
-            if niahId not in self.niahid_entry:
-                niah_version_id = "NIAH-VERSION-NVD-ADV-%s" % data_id
-                if niah_version_id not in results:
-                    results[niah_version_id] = {}
+            niah_version_id = "NIAH-VERSION-NVD-ADV-%s" % data_id
+            if niah_version_id not in results:
+                results[niah_version_id] = {}
 
-                tags = []
+            tags = []
 
-                cwe_ids = {}
-                cwe_ids['data'] = []
-                if 'problemtype' in cves['cve']:
-                    for problem_type in cves['cve']['problemtype']['problemtype_data']:
-                        for descr in problem_type['description']:
-                            cwe_id =  descr['value']
-                            cwe_ids['data'].append(cwe_id)
+            cwe_ids = {}
+            cwe_ids['data'] = []
+            if 'problemtype' in cves['cve']:
+                for problem_type in cves['cve']['problemtype']['problemtype_data']:
+                    for descr in problem_type['description']:
+                        cwe_id =  descr['value']
+                        cwe_ids['data'].append(cwe_id)
+        
+            references = {}
+            references['data'] = []
+            if 'references' in cves['cve']:
+                if 'reference_data' in cves['cve']['references']:
+                    for reference in cves['cve']['references']['reference_data']:
+                        refe = reference['url']
+                        refe = refe.replace("'", "")
+                        references['data'].append(refe)
+
+            description = {}
+            if 'description' in cves['cve']:
+                for desc in cves['cve']['description']['description_data']:
+                    if desc['lang'] == "en":
+                        desc = desc['value']
+                        desc = desc.replace("'", "")
+            else:
+                desc = ''
+
+            description['nvd'] = desc
             
-                references = {}
-                references['data'] = []
-                if 'references' in cves['cve']:
-                    if 'reference_data' in cves['cve']['references']:
-                        for reference in cves['cve']['references']['reference_data']:
-                            refe = reference['url']
-                            refe = refe.replace("'", "")
-                            references['data'].append(refe)
+            baseMetricV3 = {}
+            if 'impact' in cves:
+                if 'baseMetricV3' in cves['impact']:
+                    if 'cvssV3' in cves['impact']['baseMetricV3']:
+                        if 'attackComplexity' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['attackComplexity'] = cves['impact']['baseMetricV3']['cvssV3']['attackComplexity']
+                        if 'attackVector' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['attackVector'] = cves['impact']['baseMetricV3']['cvssV3']['attackVector']
+                        if 'availabilityImpact' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['availabilityImpact'] = cves['impact']['baseMetricV3']['cvssV3']['availabilityImpact']
+                        if 'confidentialityImpact' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['confidentialityImpact'] = cves['impact']['baseMetricV3']['cvssV3']['confidentialityImpact']
+                        if 'integrityImpact' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['integrityImpact'] = cves['impact']['baseMetricV3']['cvssV3']['integrityImpact']
+                        if 'privilegesRequired' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['privilegesRequired'] = cves['impact']['baseMetricV3']['cvssV3']['privilegesRequired']
+                        if 'scope' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['scope'] = cves['impact']['baseMetricV3']['cvssV3']['scope']
+                        if 'userInteraction' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['userInteraction'] = cves['impact']['baseMetricV3']['cvssV3']['userInteraction']
+                        if 'vectorString' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['vectorString'] = cves['impact']['baseMetricV3']['cvssV3']['vectorString']
+                        if 'exploitabilityScore' in cves['impact']['baseMetricV3']:
+                            baseMetricV3['exploitabilityScore'] = str(cves['impact']['baseMetricV3']['exploitabilityScore'])
+                        if 'impactScore' in cves['impact']['baseMetricV3']:
+                            baseMetricV3['impactScore'] = str(cves['impact']['baseMetricV3']['impactScore'])
+                        if 'baseScore' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['baseScore'] = str(cves['impact']['baseMetricV3']['cvssV3']['baseScore'])
+                        if 'baseSeverity' in cves['impact']['baseMetricV3']['cvssV3']:
+                            baseMetricV3['baseSeverity'] = str(cves['impact']['baseMetricV3']['cvssV3']['baseSeverity'])
 
-                description = {}
-                if 'description' in cves['cve']:
-                    for desc in cves['cve']['description']['description_data']:
-                        if desc['lang'] == "en":
-                            desc = desc['value']
-                            desc = desc.replace("'", "")
-                else:
-                    desc = ''
-
-                description['nvd'] = desc
-                
-                baseMetricV3 = {}
-                if 'impact' in cves:
-                    if 'baseMetricV3' in cves['impact']:
-                        if 'cvssV3' in cves['impact']['baseMetricV3']:
-                            if 'attackComplexity' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['attackComplexity'] = cves['impact']['baseMetricV3']['cvssV3']['attackComplexity']
-                            if 'attackVector' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['attackVector'] = cves['impact']['baseMetricV3']['cvssV3']['attackVector']
-                            if 'availabilityImpact' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['availabilityImpact'] = cves['impact']['baseMetricV3']['cvssV3']['availabilityImpact']
-                            if 'confidentialityImpact' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['confidentialityImpact'] = cves['impact']['baseMetricV3']['cvssV3']['confidentialityImpact']
-                            if 'integrityImpact' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['integrityImpact'] = cves['impact']['baseMetricV3']['cvssV3']['integrityImpact']
-                            if 'privilegesRequired' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['privilegesRequired'] = cves['impact']['baseMetricV3']['cvssV3']['privilegesRequired']
-                            if 'scope' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['scope'] = cves['impact']['baseMetricV3']['cvssV3']['scope']
-                            if 'userInteraction' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['userInteraction'] = cves['impact']['baseMetricV3']['cvssV3']['userInteraction']
-                            if 'vectorString' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['vectorString'] = cves['impact']['baseMetricV3']['cvssV3']['vectorString']
-                            if 'exploitabilityScore' in cves['impact']['baseMetricV3']:
-                                baseMetricV3['exploitabilityScore'] = str(cves['impact']['baseMetricV3']['exploitabilityScore'])
-                            if 'impactScore' in cves['impact']['baseMetricV3']:
-                                baseMetricV3['impactScore'] = str(cves['impact']['baseMetricV3']['impactScore'])
-                            if 'baseScore' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['baseScore'] = str(cves['impact']['baseMetricV3']['cvssV3']['baseScore'])
-                            if 'baseSeverity' in cves['impact']['baseMetricV3']['cvssV3']:
-                                baseMetricV3['baseSeverity'] = str(cves['impact']['baseMetricV3']['cvssV3']['baseSeverity'])
-
-                baseMetricV2 = {}   
-                if 'impact' in cves:
-                    if 'baseMetricV2' in cves['impact']:
-                        if 'cvssV2' in cves['impact']['baseMetricV2']:
-                            if 'accessComplexity' in cves['impact']['baseMetricV2']['cvssV2']:
-                                baseMetricV2['accessComplexity'] = cves['impact']['baseMetricV2']['cvssV2']['accessComplexity']
-                            if 'accessComplexity' in cves['impact']['baseMetricV2']['cvssV2']:
-                                baseMetricV2['accessVector'] = cves['impact']['baseMetricV2']['cvssV2']['accessVector']
-                            if 'authentication' in cves['impact']['baseMetricV2']['cvssV2']:
-                                baseMetricV2['authentication'] = cves['impact']['baseMetricV2']['cvssV2']['authentication']
-                            if 'availabilityImpact' in cves['impact']['baseMetricV2']['cvssV2']:
-                                baseMetricV2['availabilityImpact'] = cves['impact']['baseMetricV2']['cvssV2']['availabilityImpact']
-                            if 'confidentialityImpact' in cves['impact']['baseMetricV2']['cvssV2']:
-                                baseMetricV2['confidentialityImpact'] = cves['impact']['baseMetricV2']['cvssV2']['confidentialityImpact']
-                            if 'integrityImpact' in cves['impact']['baseMetricV2']['cvssV2']:
-                                baseMetricV2['integrityImpact'] = cves['impact']['baseMetricV2']['cvssV2']['integrityImpact']
-                            if 'obtainAllPrivilege' in cves['impact']['baseMetricV2']:
-                                baseMetricV2['obtainAllPrivilege'] = str(cves['impact']['baseMetricV2']['obtainAllPrivilege'])
-                            if 'obtainOtherPrivilege' in cves['impact']['baseMetricV2']:
-                                baseMetricV2['obtainOtherPrivilege'] = str(cves['impact']['baseMetricV2']['obtainOtherPrivilege'])
-                            if 'obtainUserPrivilege' in cves['impact']['baseMetricV2']:
-                                baseMetricV2['obtainUserPrivilege'] = str(cves['impact']['baseMetricV2']['obtainUserPrivilege'])
-                            if 'obtainUserPrivilege' in cves['impact']['baseMetricV2']:
-                                baseMetricV2['obtainUserPrivilege'] = str(cves['impact']['baseMetricV2']['obtainUserPrivilege'])
-                            if 'userInteractionRequired' in cves['impact']['baseMetricV2']:
-                                baseMetricV2['userInteractionRequired'] = str(cves['impact']['baseMetricV2']['userInteractionRequired'])
-                            if 'vectorString' in cves['impact']['baseMetricV2']['cvssV2']:
-                                baseMetricV2['vectorString'] = cves['impact']['baseMetricV2']['cvssV2']['vectorString']
-                            if 'exploitabilityScore' in str(cves['impact']['baseMetricV2']):
-                                baseMetricV2['exploitabilityScore'] = str(cves['impact']['baseMetricV2']['exploitabilityScore'])
-                            if 'impactScore' in cves['impact']['baseMetricV2']:
-                                baseMetricV2['impactScore'] = str(cves['impact']['baseMetricV2']['impactScore'])
-                            if 'baseScore' in cves['impact']['baseMetricV2']['cvssV2']:
-                                baseMetricV2['baseScore'] = str(cves['impact']['baseMetricV2']['cvssV2']['baseScore'])
-                            if 'severity' in cves['impact']['baseMetricV2']:
-                                baseMetricV2['severity'] = str(cves['impact']['baseMetricV2']['severity'])
+            baseMetricV2 = {}   
+            if 'impact' in cves:
+                if 'baseMetricV2' in cves['impact']:
+                    if 'cvssV2' in cves['impact']['baseMetricV2']:
+                        if 'accessComplexity' in cves['impact']['baseMetricV2']['cvssV2']:
+                            baseMetricV2['accessComplexity'] = cves['impact']['baseMetricV2']['cvssV2']['accessComplexity']
+                        if 'accessComplexity' in cves['impact']['baseMetricV2']['cvssV2']:
+                            baseMetricV2['accessVector'] = cves['impact']['baseMetricV2']['cvssV2']['accessVector']
+                        if 'authentication' in cves['impact']['baseMetricV2']['cvssV2']:
+                            baseMetricV2['authentication'] = cves['impact']['baseMetricV2']['cvssV2']['authentication']
+                        if 'availabilityImpact' in cves['impact']['baseMetricV2']['cvssV2']:
+                            baseMetricV2['availabilityImpact'] = cves['impact']['baseMetricV2']['cvssV2']['availabilityImpact']
+                        if 'confidentialityImpact' in cves['impact']['baseMetricV2']['cvssV2']:
+                            baseMetricV2['confidentialityImpact'] = cves['impact']['baseMetricV2']['cvssV2']['confidentialityImpact']
+                        if 'integrityImpact' in cves['impact']['baseMetricV2']['cvssV2']:
+                            baseMetricV2['integrityImpact'] = cves['impact']['baseMetricV2']['cvssV2']['integrityImpact']
+                        if 'obtainAllPrivilege' in cves['impact']['baseMetricV2']:
+                            baseMetricV2['obtainAllPrivilege'] = str(cves['impact']['baseMetricV2']['obtainAllPrivilege'])
+                        if 'obtainOtherPrivilege' in cves['impact']['baseMetricV2']:
+                            baseMetricV2['obtainOtherPrivilege'] = str(cves['impact']['baseMetricV2']['obtainOtherPrivilege'])
+                        if 'obtainUserPrivilege' in cves['impact']['baseMetricV2']:
+                            baseMetricV2['obtainUserPrivilege'] = str(cves['impact']['baseMetricV2']['obtainUserPrivilege'])
+                        if 'obtainUserPrivilege' in cves['impact']['baseMetricV2']:
+                            baseMetricV2['obtainUserPrivilege'] = str(cves['impact']['baseMetricV2']['obtainUserPrivilege'])
+                        if 'userInteractionRequired' in cves['impact']['baseMetricV2']:
+                            baseMetricV2['userInteractionRequired'] = str(cves['impact']['baseMetricV2']['userInteractionRequired'])
+                        if 'vectorString' in cves['impact']['baseMetricV2']['cvssV2']:
+                            baseMetricV2['vectorString'] = cves['impact']['baseMetricV2']['cvssV2']['vectorString']
+                        if 'exploitabilityScore' in str(cves['impact']['baseMetricV2']):
+                            baseMetricV2['exploitabilityScore'] = str(cves['impact']['baseMetricV2']['exploitabilityScore'])
+                        if 'impactScore' in cves['impact']['baseMetricV2']:
+                            baseMetricV2['impactScore'] = str(cves['impact']['baseMetricV2']['impactScore'])
+                        if 'baseScore' in cves['impact']['baseMetricV2']['cvssV2']:
+                            baseMetricV2['baseScore'] = str(cves['impact']['baseMetricV2']['cvssV2']['baseScore'])
+                        if 'severity' in cves['impact']['baseMetricV2']:
+                            baseMetricV2['severity'] = str(cves['impact']['baseMetricV2']['severity'])
 
 
-                details = {}
-                details['data'] = []
+            details = {}
+            details['data'] = []
 
 
-                affected_products_versions = []
-                
-                if 'configurations' in cves:
-                    if 'nodes' in cves['configurations']:
-                        for node in cves['configurations']['nodes']:
-                            if 'children' in node and len(node['children']) > 0:
-                                for chld in node['children']:
-                                    for cpe in chld['cpe_match']:
-                                        vulnerable = cpe['vulnerable']
-                                        cpe23Uri = cpe['cpe23Uri']
-                                        check = True
-
-                                        if re.findall(r'cpe:2\.3:(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?)', str(cpe23Uri)):
-                                            cpe_data = re.findall(r'cpe:2\.3:(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?)', str(cpe23Uri))[0]
-                                            part = cpe_data[0]
-                                            vendor = cpe_data[1]
-                                            product = cpe_data[2]
-                                            version = cpe_data[3]
-                                            update = cpe_data[4]
-                                            edition = cpe_data[5]
-                                            language = cpe_data[6]
-                                            software_edition = cpe_data[7]
-                                            target_software = cpe_data[8]
-                                            target_hardware = cpe_data[9]
-                                            other = cpe_data[10]
-                                        elif re.findall(r'cpe:\/(.*?):(.*?):(.*?):(.*?):(.*)', str(cpe23Uri)):
-                                            cpe_data = re.findall(r'cpe:\/(.*?):(.*?):(.*?):(.*?):(.*)', str(cpe23Uri))[0]
-                                            part = cpe_data[0]
-                                            vendor = cpe_data[1]
-                                            product = cpe_data[2]
-                                            version = cpe_data[3]
-                                            update = cpe_data[4]
-                                            edition = ''
-                                            language = ''
-                                            software_edition = ''
-                                            target_software = ''
-                                            target_hardware = ''
-                                            other = ''
-
-                                        if "versionStartIncluding" in cpe:
-                                            versionStartIncluding = cpe["versionStartIncluding"]
-                                            check = False
-                                        else:
-                                            versionStartIncluding = ''
-
-                                        if "versionEndIncluding" in cpe:
-                                            versionEndIncluding = cpe["versionEndIncluding"]
-                                            check = False
-                                        else:
-                                            versionEndIncluding = ''
-
-                                        if "versionEndExcluding" in cpe:
-                                            versionEndExcluding = cpe["versionEndExcluding"]
-                                            check = False
-                                        else:
-                                            versionEndExcluding = ''
-
-                                        if "versionStartExcluding" in cpe:
-                                            versionStartExcluding = cpe["versionStartExcluding"]
-                                            check = False
-                                        else:
-                                            versionStartExcluding = ''
-
-                                        if check:
-                                            version = version
-                                            if version != "-":
-                                                patch = 'Vulnerable version %s' % version
-                                            else:
-                                                patch = ''
-                                        else:
-                                            if versionStartIncluding:
-                                                if versionEndIncluding:
-                                                    version = "[%s:%s]" % (versionStartIncluding, versionEndIncluding)
-                                                    patch = "Upgrade later version of %s" % versionEndIncluding
-                                                if versionEndExcluding:
-                                                    version = "[%s:%s)" % (versionStartIncluding, versionEndExcluding)
-                                                    patch = "Upgrade version %s" % versionEndExcluding
-                                            elif versionStartExcluding:
-                                                if versionEndIncluding:
-                                                    version = "(%s:%s]" % (versionStartExcluding, versionEndIncluding)
-                                                    patch = "Upgrade later version of %s" % versionEndIncluding
-                                                if versionEndExcluding:
-                                                    version = "(%s:%s)" % (versionStartExcluding, versionEndExcluding)
-                                                    patch = "Upgrade version %s" % versionEndExcluding
-                                            else:
-                                                if versionEndIncluding:
-                                                    version = "[0.0:%s]" % versionEndIncluding
-                                                    patch = "Upgrade later version of %s" % versionEndIncluding
-                                                if versionEndExcluding:
-                                                    version = "[0.0:%s)" % versionEndExcluding
-                                                    patch = "Upgrade version %s" % versionEndExcluding
-
-                                        product = product.replace("'", "")
-                                        vendor = vendor.replace("'", "")
-                                        patch = patch.replace("'", "")
-                                        version = version.replace("'", "")
-                                        part = part.replace("'", "")
-                                        update = update.replace("'", "")
-                                        language = language.replace("'", "")
-
-
-                                        affected_version = {}
-                                        affected_version['product'] = product
-                                        affected_version['vendor'] = vendor
-                                        affected_version['patch'] = patch
-                                        affected_version['version'] = version
-
-                                        res = {}
-                                        res['part'] = part
-                                        
-                                        type ="NVD"
-                                        advisory = 'ADV'
-
-                                        niah_adv_id = "NIAH-NVD-ADV-%s-%s" % (vendor.upper(), product.upper())
-
-                                        #if self.check_product_entry(niah_adv_id):
-                                        if niah_adv_id not in self.product_entry:
-                                            query = "INSERT INTO product_reference_tab(niah_product_id, product, vendor, type, advisory, data, revision) values('%s', '%s', '%s', '%s', '%s', '%s', '0')" % (niah_adv_id, product, vendor, type, advisory, json.dumps(res))
-                                            self.cursor.execute(query)
-                                            self.connection.commit()
-                                            self.product_entry[niah_adv_id] = '0'
+            affected_products_versions = []
             
-                                            updated_cves['product_ids'].append(niah_adv_id)
-
-                                            query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_adv_id, 'indev', date_update, '0')
-                                            #print(query)
-                                            self.cursor.execute(query)
-                                            self.connection.commit()
-
-                                        if niah_adv_id not in results[niah_version_id]:
-                                            results[niah_version_id][niah_adv_id] = []
-
-                                        if affected_version not in results[niah_version_id][niah_adv_id]:
-                                            results[niah_version_id][niah_adv_id].append(affected_version)
-
-                                        if niah_version_id not in affected_products_versions:
-                                            affected_products_versions.append(niah_version_id)
-
-                            elif 'cpe_match' in node:
-                                for cpe in node['cpe_match']:
+            if 'configurations' in cves:
+                if 'nodes' in cves['configurations']:
+                    for node in cves['configurations']['nodes']:
+                        if 'children' in node and len(node['children']) > 0:
+                            for chld in node['children']:
+                                for cpe in chld['cpe_match']:
                                     vulnerable = cpe['vulnerable']
                                     cpe23Uri = cpe['cpe23Uri']
-                                    
+                                    check = True
+
                                     if re.findall(r'cpe:2\.3:(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?)', str(cpe23Uri)):
                                         cpe_data = re.findall(r'cpe:2\.3:(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?)', str(cpe23Uri))[0]
                                         part = cpe_data[0]
@@ -543,8 +411,6 @@ class nvdGet():
                                         target_software = ''
                                         target_hardware = ''
                                         other = ''
-
-                                    check = True
 
                                     if "versionStartIncluding" in cpe:
                                         versionStartIncluding = cpe["versionStartIncluding"]
@@ -576,7 +442,6 @@ class nvdGet():
                                             patch = 'Vulnerable version %s' % version
                                         else:
                                             patch = ''
-
                                     else:
                                         if versionStartIncluding:
                                             if versionEndIncluding:
@@ -599,7 +464,7 @@ class nvdGet():
                                             if versionEndExcluding:
                                                 version = "[0.0:%s)" % versionEndExcluding
                                                 patch = "Upgrade version %s" % versionEndExcluding
-                                    
+
                                     product = product.replace("'", "")
                                     vendor = vendor.replace("'", "")
                                     patch = patch.replace("'", "")
@@ -617,7 +482,7 @@ class nvdGet():
 
                                     res = {}
                                     res['part'] = part
-                                        
+                                    
                                     type ="NVD"
                                     advisory = 'ADV'
 
@@ -625,11 +490,11 @@ class nvdGet():
 
                                     #if self.check_product_entry(niah_adv_id):
                                     if niah_adv_id not in self.product_entry:
-                                        query = "INSERT INTO product_reference_tab(niah_product_id, product, vendor, type, advisory, data, revision) values('%s', '%s', '%s', '%s', '%s', '%s', '0')" % (niah_adv_id, product, vendor, type, advisory, json.dumps(res))
+                                        query = "INSERT INTO product_reference_tab(niah_product_id, product, vendor, type, advisory, data, revision, vuln_status) values('%s', '%s', '%s', '%s', '%s', '%s', '0', 'indev')" % (niah_adv_id, product, vendor, type, advisory, json.dumps(res))
                                         self.cursor.execute(query)
-                                        self.connection.commit()  
+                                        self.connection.commit()
                                         self.product_entry[niah_adv_id] = '0'
-
+        
                                         updated_cves['product_ids'].append(niah_adv_id)
 
                                         query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_adv_id, 'indev', date_update, '0')
@@ -642,68 +507,202 @@ class nvdGet():
 
                                     if affected_version not in results[niah_version_id][niah_adv_id]:
                                         results[niah_version_id][niah_adv_id].append(affected_version)
-                                    
+
                                     if niah_version_id not in affected_products_versions:
                                         affected_products_versions.append(niah_version_id)
 
-                
-                check = True
+                        elif 'cpe_match' in node:
+                            for cpe in node['cpe_match']:
+                                vulnerable = cpe['vulnerable']
+                                cpe23Uri = cpe['cpe23Uri']
+                                
+                                if re.findall(r'cpe:2\.3:(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?)', str(cpe23Uri)):
+                                    cpe_data = re.findall(r'cpe:2\.3:(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?):(.*?)', str(cpe23Uri))[0]
+                                    part = cpe_data[0]
+                                    vendor = cpe_data[1]
+                                    product = cpe_data[2]
+                                    version = cpe_data[3]
+                                    update = cpe_data[4]
+                                    edition = cpe_data[5]
+                                    language = cpe_data[6]
+                                    software_edition = cpe_data[7]
+                                    target_software = cpe_data[8]
+                                    target_hardware = cpe_data[9]
+                                    other = cpe_data[10]
+                                elif re.findall(r'cpe:\/(.*?):(.*?):(.*?):(.*?):(.*)', str(cpe23Uri)):
+                                    cpe_data = re.findall(r'cpe:\/(.*?):(.*?):(.*?):(.*?):(.*)', str(cpe23Uri))[0]
+                                    part = cpe_data[0]
+                                    vendor = cpe_data[1]
+                                    product = cpe_data[2]
+                                    version = cpe_data[3]
+                                    update = cpe_data[4]
+                                    edition = ''
+                                    language = ''
+                                    software_edition = ''
+                                    target_software = ''
+                                    target_hardware = ''
+                                    other = ''
+
+                                check = True
+
+                                if "versionStartIncluding" in cpe:
+                                    versionStartIncluding = cpe["versionStartIncluding"]
+                                    check = False
+                                else:
+                                    versionStartIncluding = ''
+
+                                if "versionEndIncluding" in cpe:
+                                    versionEndIncluding = cpe["versionEndIncluding"]
+                                    check = False
+                                else:
+                                    versionEndIncluding = ''
+
+                                if "versionEndExcluding" in cpe:
+                                    versionEndExcluding = cpe["versionEndExcluding"]
+                                    check = False
+                                else:
+                                    versionEndExcluding = ''
+
+                                if "versionStartExcluding" in cpe:
+                                    versionStartExcluding = cpe["versionStartExcluding"]
+                                    check = False
+                                else:
+                                    versionStartExcluding = ''
+
+                                if check:
+                                    version = version
+                                    if version != "-":
+                                        patch = 'Vulnerable version %s' % version
+                                    else:
+                                        patch = ''
+
+                                else:
+                                    if versionStartIncluding:
+                                        if versionEndIncluding:
+                                            version = "[%s:%s]" % (versionStartIncluding, versionEndIncluding)
+                                            patch = "Upgrade later version of %s" % versionEndIncluding
+                                        if versionEndExcluding:
+                                            version = "[%s:%s)" % (versionStartIncluding, versionEndExcluding)
+                                            patch = "Upgrade version %s" % versionEndExcluding
+                                    elif versionStartExcluding:
+                                        if versionEndIncluding:
+                                            version = "(%s:%s]" % (versionStartExcluding, versionEndIncluding)
+                                            patch = "Upgrade later version of %s" % versionEndIncluding
+                                        if versionEndExcluding:
+                                            version = "(%s:%s)" % (versionStartExcluding, versionEndExcluding)
+                                            patch = "Upgrade version %s" % versionEndExcluding
+                                    else:
+                                        if versionEndIncluding:
+                                            version = "[0.0:%s]" % versionEndIncluding
+                                            patch = "Upgrade later version of %s" % versionEndIncluding
+                                        if versionEndExcluding:
+                                            version = "[0.0:%s)" % versionEndExcluding
+                                            patch = "Upgrade version %s" % versionEndExcluding
+                                
+                                product = product.replace("'", "")
+                                vendor = vendor.replace("'", "")
+                                patch = patch.replace("'", "")
+                                version = version.replace("'", "")
+                                part = part.replace("'", "")
+                                update = update.replace("'", "")
+                                language = language.replace("'", "")
+
+
+                                affected_version = {}
+                                affected_version['product'] = product
+                                affected_version['vendor'] = vendor
+                                affected_version['patch'] = patch
+                                affected_version['version'] = version
+
+                                res = {}
+                                res['part'] = part
+                                    
+                                type ="NVD"
+                                advisory = 'ADV'
+
+                                niah_adv_id = "NIAH-NVD-ADV-%s-%s" % (vendor.upper(), product.upper())
+
+                                #if self.check_product_entry(niah_adv_id):
+                                if niah_adv_id not in self.product_entry:
+                                    query = "INSERT INTO product_reference_tab(niah_product_id, product, vendor, type, advisory, data, revision, vuln_status) values('%s', '%s', '%s', '%s', '%s', '%s', '0', 'indev')" % (niah_adv_id, product, vendor, type, advisory, json.dumps(res))
+                                    self.cursor.execute(query)
+                                    self.connection.commit()  
+                                    self.product_entry[niah_adv_id] = '0'
+
+                                    updated_cves['product_ids'].append(niah_adv_id)
+
+                                    query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'product', niah_adv_id, 'indev', date_update, '0')
+                                    #print(query)
+                                    self.cursor.execute(query)
+                                    self.connection.commit()
+
+                                if niah_adv_id not in results[niah_version_id]:
+                                    results[niah_version_id][niah_adv_id] = []
+
+                                if affected_version not in results[niah_version_id][niah_adv_id]:
+                                    results[niah_version_id][niah_adv_id].append(affected_version)
+                                
+                                if niah_version_id not in affected_products_versions:
+                                    affected_products_versions.append(niah_version_id)
+
             
-                if niahId in self.niahid_entry:
-                    revision = int(self.niahid_entry[niahId]['revision']) + 1
-                    if lastModifiedDate == self.niahid_entry[niahId]['lastmodifieddate']:
-                        check = False
-                    self.niahid_entry[niahId]['revision'] = int(self.niahid_entry[niahId]['revision']) + 1
-                    self.niahid_entry[niahId]['lastmodifieddate'] = lastModifiedDate
+            check = True
+        
+            if niahId in self.niahid_entry:
+                revision = int(self.niahid_entry[niahId]['revision']) + 1
+                if lastModifiedDate == self.niahid_entry[niahId]['lastmodifieddate']:
+                    check = False
+                self.niahid_entry[niahId]['revision'] = int(self.niahid_entry[niahId]['revision']) + 1
+                self.niahid_entry[niahId]['lastmodifieddate'] = lastModifiedDate
 
-                    fetchData = self.check_niahid_entry(niahId)
-                    if fetchData:
-                        affected_products_versions_old = fetchData[0][7]
-                        for affected_version_nu in affected_products_versions_old:
-                            if affected_version_nu not in affected_products_versions:
-                                affected_products_versions.append(affected_version_nu)
+                fetchData = self.check_niahid_entry(niahId)
+                if fetchData:
+                    affected_products_versions_old = fetchData[0][7]
+                    for affected_version_nu in affected_products_versions_old:
+                        if affected_version_nu not in affected_products_versions:
+                            affected_products_versions.append(affected_version_nu)
+            else:
+                revision = '0'
+                self.niahid_entry[niahId] = {}
+                self.niahid_entry[niahId]['revision'] = '0'
+                self.niahid_entry[niahId]['lastmodifieddate'] = lastModifiedDate
+
+            if check:
+                self.connection = psycopg2.connect(user=self.userName, password=self.password, host=self.hostName, port="5432", database=self.databaseName)
+                self.cursor = self.connection.cursor()
+
+                query = "INSERT INTO vuln_tab(niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision)VALUES('{niahId}', '{data_type}', '{data_id}', '{cwe_ids}', '{references}', '{description}', '{baseMetricV3}', '{baseMetricV2}', '{publishedDate}', '{lastModifiedDate}', '{affected_products_versions}', '1', 'indev', '{revision}');".format(niahId=niahId, data_type=data_type, data_id=data_id, cwe_ids=json.dumps(cwe_ids), references=json.dumps(references), description=json.dumps(description), baseMetricV2=json.dumps(baseMetricV2), baseMetricV3=json.dumps(baseMetricV3), publishedDate=publishedDate, lastModifiedDate=lastModifiedDate, affected_products_versions=json.dumps(affected_products_versions), revision=revision)
+                #print(query)
+                self.cursor.execute(query)
+                self.connection.commit()
+                
+                updated_cves['niah_ids'].append(niahId)
+
+                self.connection = psycopg2.connect(user=self.userName, password=self.password, host=self.hostName, port="5432", database=self.databaseName)
+                self.cursor = self.connection.cursor()
+
+                query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'cve', niahId, 'indev', date_update, revision)
+                #print(query)
+                self.cursor.execute(query)
+                self.connection.commit()
+
+                if niah_version_id in self.versions_entry:
+                    revision = int(self.versions_entry[niah_version_id]) + 1
+                    self.versions_entry[niah_version_id] = revision
                 else:
-                    revision = '0'
-                    self.niahid_entry[niahId] = {}
-                    self.niahid_entry[niahId]['revision'] = '0'
-                    self.niahid_entry[niahId]['lastmodifieddate'] = lastModifiedDate
+                    revision = 0
+                    self.versions_entry[niah_version_id] = revision
 
-                if check:
-                    self.connection = psycopg2.connect(user=self.userName, password=self.password, host=self.hostName, port="5432", database=self.databaseName)
-                    self.cursor = self.connection.cursor()
-    
-                    query = "INSERT INTO vuln_tab(niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision)VALUES('{niahId}', '{data_type}', '{data_id}', '{cwe_ids}', '{references}', '{description}', '{baseMetricV3}', '{baseMetricV2}', '{publishedDate}', '{lastModifiedDate}', '{affected_products_versions}', '1', 'indev', '{revision}');".format(niahId=niahId, data_type=data_type, data_id=data_id, cwe_ids=json.dumps(cwe_ids), references=json.dumps(references), description=json.dumps(description), baseMetricV2=json.dumps(baseMetricV2), baseMetricV3=json.dumps(baseMetricV3), publishedDate=publishedDate, lastModifiedDate=lastModifiedDate, affected_products_versions=json.dumps(affected_products_versions), revision=revision)
-                    #print(query)
-                    self.cursor.execute(query)
-                    self.connection.commit()
-                    
-                    updated_cves['niah_ids'].append(niahId)
+                self.connection = psycopg2.connect(user=self.userName, password=self.password, host=self.hostName, port="5432", database=self.databaseName)
+                self.cursor = self.connection.cursor()
+                query = "INSERT INTO affected_versions_tab(niah_version_id, versions, revision, vuln_status) values('%s', '%s', '%s', 'indev')" % (niah_version_id, json.dumps(results[niah_version_id]), revision)
+                #print(query)
+                self.cursor.execute(query)
+                self.connection.commit() 
 
-                    self.connection = psycopg2.connect(user=self.userName, password=self.password, host=self.hostName, port="5432", database=self.databaseName)
-                    self.cursor = self.connection.cursor()
-
-                    query = "INSERT INTO history(username, type, niahid, status, lastupdated, revision) values('%s', '%s', '%s', '%s', '%s', '%s')" % ('system@niahsecurity.io', 'cve', niahId, 'indev', date_update, revision)
-                    #print(query)
-                    self.cursor.execute(query)
-                    self.connection.commit()
-
-                    if niah_version_id in self.versions_entry:
-                        revision = int(self.versions_entry[niah_version_id]) + 1
-                        self.versions_entry[niah_version_id] = revision
-                    else:
-                        revision = 0
-                        self.versions_entry[niah_version_id] = revision
-
-                    self.connection = psycopg2.connect(user=self.userName, password=self.password, host=self.hostName, port="5432", database=self.databaseName)
-                    self.cursor = self.connection.cursor()
-                    query = "INSERT INTO affected_versions_tab(niah_version_id, versions, revision) values('%s', '%s', '%s')" % (niah_version_id, json.dumps(results[niah_version_id]), revision)
-                    #print(query)
-                    self.cursor.execute(query)
-                    self.connection.commit() 
-
-                    #message = "(NIAH-VULN-ID : %s) %s CVE updated" % (niahId, data_id)
-                    #res = check_alerts()
-                    #res.update_alerts('cve_id', data_id, self.date_update, message)
+                #message = "(NIAH-VULN-ID : %s) %s CVE updated" % (niahId, data_id)
+                #res = check_alerts()
+                #res.update_alerts('cve_id', data_id, self.date_update, message)
         
         with open(update_filename, 'w') as outfile:
             json.dump(updated_cves, outfile, indent=2)

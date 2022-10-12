@@ -69,10 +69,12 @@ class debianParser():
             results = xmltodict.parse(page.content)
             if 'item' in results['rdf:RDF']:
                 for item in tqdm(results['rdf:RDF']['item']):
-                    link = item['link']
-                    res = self.get_package(link, platform)
-                    packagename = res['package']
-                    update_array['updated'].append(packagename)
+                    if item == "link":
+                        link = results['rdf:RDF']['item'][item]
+                        print("1 - %s" % link)
+                        res = self.get_package(link, platform)
+                        packagename = res['package']
+                        update_array['updated'].append(packagename)
 
         return update_array
 
@@ -286,7 +288,8 @@ class debianParser():
             results['current'] = res
             results['versions'].append(res)
         else:
-            os.system("mkdir %s" % target_dir)
+            print("mkdir -p %s" % target_dir)
+            os.system("mkdir -p %s" % target_dir)
             results = {}
             results['current'] = res
             results['versions'] = []
