@@ -108,7 +108,6 @@ class composer_parser():
 
 
     def startParsing(self, fullscan):
-        update_array = {}
         if fullscan == "yes":
             if not os.path.exists('composer_data.json'):
                 url = "https://packagist.org/packages/list.json"
@@ -142,22 +141,10 @@ class composer_parser():
 
                 with open("composer_daily_data.json", "r") as f:
                     daily_data = json.load(f)
-
-                if 'releases' in url:
-                    update_array['updated'] = []
-                if 'packages' in url:
-                    update_array['packages'] = []
-
+             
                 for item in tqdm(daily_data):
-                    if 'updates' in url:
-                        update_array['updated'].append(item)
-                    if 'packages' in url:
-                        update_array['packages'].append(item)
-
                     url = f"https://repo.packagist.org/p2/{item}.json";
                     self.composerParser(item, url)
-
-        return update_array        
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

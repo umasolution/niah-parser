@@ -336,8 +336,8 @@ class moniRedhatDB():
         results['cve_id'] = cve_id
         return results
     
-    def get_rss(self, date_update):
-        yesterday = datetime.datetime.today() - timedelta(days = 1 )
+    def getrss(self, date_update):
+        yesterday = datetime.datetime.today() - timedelta(days = 2 )
         datetime_search = yesterday.isoformat()
         print(datetime_search)
         #response = requests.get('https://access.redhat.com/hydra/rest/securitydata/cve.json?page=%s' % i)

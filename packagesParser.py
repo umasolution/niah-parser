@@ -9,7 +9,8 @@ from packagesAdvisory.composerParser import composer_parser
 from packagesAdvisory.pypiParser import pypi_parser
 from packagesAdvisory.debianParser import debianParser
 from packagesAdvisory.ubuntuParser import ubuntuParser
-
+from packagesAdvisory.elixir_hex_advisory import elixir_hex_advisory
+from packagesAdvisory.pub_dev_advisory import pub_dev_advisory
 from time import gmtime, strftime
 import configparser
 import logging
@@ -29,43 +30,41 @@ class monitor():
 
 
     def run(self):
-        update_filename = "/var/DB/feeds/updated/%s_packages.json" % datetime.datetime.today().strftime('%Y-%m-%d').replace("-", "_")
-
-        update_filename_path = Path(update_filename)
-        if update_filename_path.is_file():
-            with open(update_filename, "r") as f:
-                updated_array = json.load(f)
-        else:
-            updated_array = {}
-
         for product in self.products.split(','):
             if product == "npm":
                 res = npm_parser()
-                updated_array['npm'] = res.startParsing('no')
+                res.startParsing('no')
                 print("NPM Package Advisory [ OK ]")
 
             if product == "pypi":
                 res = pypi_parser()
-                updated_array['pypi'] = res.startParsing('no')
+                res.startParsing('no')
                 print("Pypi Package Advisory [ OK ]")
 
             if product == "composer":
                 res = composer_parser()
-                updated_array['composer'] = res.startParsing('no')
+                res.startParsing('no')
                 print("Composer Package Advisory [ OK ]")
 
             if product == "debian":
                 res = debianParser()
-                updated_array['debian'] = res.intialize()
+                res.intialize()
                 print("Debian Package Advisory [ OK ]")
 
             if product == "ubuntu":
                 res = ubuntuParser()
-                updated_array['ubuntu'] = res.intialize()
+                res.intialize()
                 print("Ubuntu Package Advisory [ OK ]")
-
-        with open(update_filename, 'w') as outfile:
-            json.dump(updated_array, outfile, indent=2)
+            
+            if product == "hex":
+                res = elixir_hex_advisory()
+                res.rssfeed()
+                print("Hex Package Advisory [ OK ]")
+            
+            if product == "pub_dev":
+                res = pub_dev_advisory()
+                res.rssfeed()
+                print("Pub.Dev Package Advisory [ OK ]")
 
 if __name__ == "__main__":
     res = monitor()

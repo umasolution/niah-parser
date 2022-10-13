@@ -51,9 +51,6 @@ class ubuntuParser():
         os.system(cmd)
 
     def rssfeed(self, platforms):
-        update_array = {}
-        update_array['updated'] = []
-
         for platform in platforms:
             target_dir = "/var/DB/packages/platforms/ubuntu/%s" % platform
             if not os.path.isdir(target_dir):
@@ -74,9 +71,6 @@ class ubuntuParser():
                     print("1 - %s" % link)
                     res = self.get_package(link, platform)
                     packagename = res['package']
-                    update_array['updated'].append(packagename)
-
-        return update_array
 
     def get_pkg_details(self, package, platform=None):
         results = {}
@@ -138,8 +132,7 @@ class ubuntuParser():
         print(platform_url)
         if self.daily:
             print("[ INFO ] Rss fetching")
-            update_array = self.rssfeed(platform_url)
-            return update_array
+            self.rssfeed(platform_url)
 
         if not self.daily:
             # print("Downloading platform data")

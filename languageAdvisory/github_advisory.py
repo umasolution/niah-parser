@@ -153,7 +153,7 @@ class GHSAdvisory():
         fetchData = self.cursor.fetchall()
         return fetchData[0][0] + 1
 
-    def initialize(self, date_update, updated_cves):
+    def initialize(self, date_update):
         print("[ OK ] GHSAdvisory Sync Started")
         #cmd = "sudo sysctl -p"
         #status, output = getstatusoutput(cmd)

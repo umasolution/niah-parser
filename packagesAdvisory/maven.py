@@ -411,82 +411,87 @@ class moniMaven():
 
 
     def get_json_xml(self, url):
-        page_src = self.getPageSource(url)
-        xml_parser = BeautifulSoup(page_src, "xml")
-
-        results = {}
-
-        if xml_parser.find('groupId'):
-            groupid = xml_parser.find('groupId').contents[0]
-            results['groupid'] = groupid
-        
-        if xml_parser.find('artifactId'):
-            artifactId = xml_parser.find('artifactId').contents[0]
-            results['artifactId'] = artifactId
-
+        print(url)
         try:
-            if xml_parser.find('description'):
-                description = xml_parser.find('description').contents[0]
-                results['description'] = description
-        except:
-            results['description'] = ''
-        if xml_parser.find('name'):
-            try:
-                name = xml_parser.find('name').contents[0]
-                results['name'] = name
-            except:
-                name = ''
-                results['name'] = name
-        if xml_parser.find('packaging'):
-            packaging = xml_parser.find('packaging').contents[0]
-            results['packaging'] = packaging
-        if xml_parser.find('version'):
-            version = xml_parser.find('version').contents[0]
-            results['version'] = version
-        try:
-            if xml_parser.find('url'):
-                url_src = xml_parser.find('url').contents[0]
-                results['url_src'] = url_src
-        except:
-            results['url_src'] = ''
-        if xml_parser.find('modelVersion'):
-            modelVersion = xml_parser.find('modelVersion').contents[0]
-            results['modelVersion'] = modelVersion
-        if xml_parser.find('license'):
-            licenses = xml_parser.find('license')
-            results['license'] = {}
-            if licenses.find('name'):
-                results['license']['name'] = licenses.find('name').text
-            if licenses.find('url'):
-                results['license']['url'] = licenses.find('url').text
+            page_src = self.getPageSource(url)
+            xml_parser = BeautifulSoup(page_src, "xml")
 
-        dependencies = []
-        if xml_parser.find_all('dependency'):
-            dependency = xml_parser.find_all('dependency')
+            results = {}
+
+            if xml_parser.find('groupId'):
+                groupid = xml_parser.find('groupId').contents[0]
+                results['groupid'] = groupid
             
-            for dep in dependency:
-                res = {}
-                if dep.find('groupId'):
-                    res['groupId'] = dep.find('groupId').text
-                if dep.find('artifactId'):
-                    res['artifactId'] = dep.find('artifactId').text
-                if dep.find('version'):
-                    res['version'] = dep.find('version').text
-                dependencies.append(res)
+            if xml_parser.find('artifactId'):
+                artifactId = xml_parser.find('artifactId').contents[0]
+                results['artifactId'] = artifactId
 
-        results['dependencies'] = dependencies
+            try:
+                if xml_parser.find('description'):
+                    description = xml_parser.find('description').contents[0]
+                    results['description'] = description
+            except:
+                results['description'] = ''
+            if xml_parser.find('name'):
+                try:
+                    name = xml_parser.find('name').contents[0]
+                    results['name'] = name
+                except:
+                    name = ''
+                    results['name'] = name
+            if xml_parser.find('packaging'):
+                packaging = xml_parser.find('packaging').contents[0]
+                results['packaging'] = packaging
+            if xml_parser.find('version'):
+                version = xml_parser.find('version').contents[0]
+                results['version'] = version
+            try:
+                if xml_parser.find('url'):
+                    url_src = xml_parser.find('url').contents[0]
+                    results['url_src'] = url_src
+            except:
+                results['url_src'] = ''
+            if xml_parser.find('modelVersion'):
+                modelVersion = xml_parser.find('modelVersion').contents[0]
+                results['modelVersion'] = modelVersion
+            if xml_parser.find('license'):
+                licenses = xml_parser.find('license')
+                results['license'] = {}
+                if licenses.find('name'):
+                    results['license']['name'] = licenses.find('name').text
+                if licenses.find('url'):
+                    results['license']['url'] = licenses.find('url').text
 
-        if xml_parser.find('scm'):
-            scm = xml_parser.find('scm')
-            results['scm'] = {}
-            if scm.find('url'):
-                results['scm']['url'] = scm.find('url').text.strip()
-            if scm.find('connection'):
-                results['scm']['connection'] = scm.find('connection').text.strip()
-            if scm.find('developerConnection'):
-                results['scm']['developerConnection'] = scm.find('developerConnection').text.strip()
+            dependencies = []
+            if xml_parser.find_all('dependency'):
+                dependency = xml_parser.find_all('dependency')
+                
+                for dep in dependency:
+                    res = {}
+                    if dep.find('groupId'):
+                        res['groupId'] = dep.find('groupId').text
+                    if dep.find('artifactId'):
+                        res['artifactId'] = dep.find('artifactId').text
+                    if dep.find('version'):
+                        res['version'] = dep.find('version').text
+                    dependencies.append(res)
 
-        return results
+            results['dependencies'] = dependencies
+
+            if xml_parser.find('scm'):
+                scm = xml_parser.find('scm')
+                results['scm'] = {}
+                if scm.find('url'):
+                    results['scm']['url'] = scm.find('url').text.strip()
+                if scm.find('connection'):
+                    results['scm']['connection'] = scm.find('connection').text.strip()
+                if scm.find('developerConnection'):
+                    results['scm']['developerConnection'] = scm.find('developerConnection').text.strip()
+
+            return results
+        except:
+            results = {}
+            return results
     
     def is_metadata_in(self, atags):
         for atag in atags:
