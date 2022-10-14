@@ -1,10 +1,11 @@
-from importlib.resources import Package
 import requests
 import re
 from bs4 import BeautifulSoup
 import json
 import sys
 import array
+import os.path
+
 
 class pub_dev_advisory():
     def __init__(self) -> None:
@@ -19,15 +20,22 @@ class pub_dev_advisory():
         main_urls = soup.find('div',class_ = 'packages')
         for h3 in main_urls.findAll('h3'):
             a_tag = h3.find('a')
-            try:   
-                if 'href' in a_tag.attrs:
-                    url = a_tag.get('href')
-                    url = 'https://pub.dev' +url
-                    urls.append(url)
-            except:
-                pass
+            packagename = a_tag.text
+            fpath = "/var/DB/packages/pub_dev/%s.json" % packagename
+            print(fpath)
+            if os.path.isfile(fpath):
+                print("%s exists" % fpath)
+            else:
+                try:   
+                    if 'href' in a_tag.attrs:
+                        url = a_tag.get('href')
+                        url = 'https://pub.dev' +url
+                        urls.append(url)
+                except:
+                    pass
         
         for url in urls:
+            print("URL - %s" % url)
             page = requests.get(url)
             response = page.content
             soup = BeautifulSoup(response,"html.parser")
@@ -52,9 +60,10 @@ class pub_dev_advisory():
             div = soup.find('div', class_ = 'detail-container').find('div', class_ = 'detail-tags')
 
             sdk_types = []
-            sdk_type = div.find('div', class_ = '-pub-tag-badge').findAll('a')
-            for sdk in sdk_type:
-                sdk_types.append(sdk.text)
+            if div.find('div', class_ = '-pub-tag-badge'):
+                sdk_type = div.find('div', class_ = '-pub-tag-badge').findAll('a')
+                for sdk in sdk_type:
+                    sdk_types.append(sdk.text)
 
             a_tag = soup.find('aside', class_ = 'detail-info-box').find('a')
 
@@ -107,7 +116,7 @@ class pub_dev_advisory():
             result['license'] = lic
             result['dependencies'] = depends
         
-            with open("output\%s.json" % Package_name, "w") as outfile:
+            with open("/var/DB/packages/pub_dev/%s.json" % Package_name, "w") as outfile:
                 json.dump(result, outfile, indent=2)
 
             print("%s.json file created completely.....!!!!!! " %Package_name)

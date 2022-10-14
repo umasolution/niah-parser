@@ -2,6 +2,8 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+import os.path
+
 
 
 class elixir_hex_advisory():
@@ -16,13 +18,19 @@ class elixir_hex_advisory():
         uv = soup.find('div',class_ = 'package-list')
         for h in uv.findAll('li'):
             a = h.find('a')
-            try:
-                if 'href' in a.attrs:
-                    url = a.get('href')
-                    url = 'https://hex.pm/' +url
-                    urls.append(url)
-            except:
-                    pass
+            packagename = a.text
+
+            fpath = "/var/DB/packages/hex/%s.json" % packagename
+            if os.path.isfile('filename.txt'):
+                print("%s exists" % fpath)
+            else:
+                try:
+                    if 'href' in a.attrs:
+                        url = a.get('href')
+                        url = 'https://hex.pm/' +url
+                        urls.append(url)
+                except:
+                        pass
         
         for url in urls:
             print("url - %s" % url)
@@ -49,7 +57,11 @@ class elixir_hex_advisory():
 
             p_name = soup.find('div', class_='container package-view').find('a').text
 
-            p_dis = soup.find('div',class_ = "description with-divider").find('p').text
+
+            if soup.find('div',class_ = "description with-divider"):
+                p_dis = soup.find('div',class_ = "description with-divider").find('p').text
+            else:
+                p_dis = ''
 
         
             download1 = soup.find('div', class_='stats package-stats clearfix').findAll('span', class_='count-info no-wrap')[1]

@@ -11,6 +11,8 @@ from packagesAdvisory.debianParser import debianParser
 from packagesAdvisory.ubuntuParser import ubuntuParser
 from packagesAdvisory.elixir_hex_advisory import elixir_hex_advisory
 from packagesAdvisory.pub_dev_advisory import pub_dev_advisory
+from packagesAdvisory.crates_io import crate_scan
+from packagesAdvisory.ruby_packages import ruby_info
 from time import gmtime, strftime
 import configparser
 import logging
@@ -65,6 +67,17 @@ class monitor():
                 res = pub_dev_advisory()
                 res.rssfeed()
                 print("Pub.Dev Package Advisory [ OK ]")
+
+            if product == "crate":
+                res = crate_scan()
+                res.rssfeed()
+                print("Crate Package Advisory [ OK ]")
+
+            if product == "rubygems":
+                res = ruby_info()
+                res.rssfeed()
+                print("Rubygems Package Advisory [ OK ]")
+
 
 if __name__ == "__main__":
     res = monitor()
