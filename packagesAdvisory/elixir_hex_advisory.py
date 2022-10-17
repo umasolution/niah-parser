@@ -21,7 +21,8 @@ class elixir_hex_advisory():
             packagename = a.text
 
             fpath = "/var/DB/packages/hex/%s.json" % packagename
-            if os.path.isfile('filename.txt'):
+            print(fpath)
+            if os.path.isfile(fpath):
                 print("%s exists" % fpath)
             else:
                 try:
@@ -57,12 +58,10 @@ class elixir_hex_advisory():
 
             p_name = soup.find('div', class_='container package-view').find('a').text
 
-
+            p_dis = ''
             if soup.find('div',class_ = "description with-divider"):
-                p_dis = soup.find('div',class_ = "description with-divider").find('p').text
-            else:
-                p_dis = ''
-
+                if soup.find('div',class_ = "description with-divider").find('p'):
+                    p_dis = soup.find('div',class_ = "description with-divider").find('p').text
         
             download1 = soup.find('div', class_='stats package-stats clearfix').findAll('span', class_='count-info no-wrap')[1]
             down1 = download1.text.strip()

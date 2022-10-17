@@ -3,6 +3,7 @@ from ensurepip import version
 from operator import truediv
 import os
 from platform import platform
+import queue
 import sys
 import ast
 import os.path
@@ -289,6 +290,64 @@ class cveFeed():
 
         return retRes
 
+    def update_reference(self, niahid, references):
+        try:
+            reference = {}
+            reference['data'] = []
+            for ref in references:
+                if "['" in str(ref):
+                    refe = str(ref).replace("['", "").replace("']", "")
+                    refe = refe.replace("'", "")
+                    if refe not in reference['data']:
+                        reference['data'].append(refe)
+                else:
+                    ref = ref.replace("'", "")
+                    if ref not in reference['data']:
+                        reference['data'].append(ref)
+
+            query = "update vuln_tab set reference_data='%s' where niahid='%s'" % (json.dumps(reference), niahid)
+            self.cursor.execute(query)
+            self.connection.commit()
+        except:
+            reference = {}
+            reference['data'] = []
+
+        return reference
+
+    def update_baseSeverity_v2(self, cve_id, year, niahid, basemetricv2_data):
+        try:
+            with open("/home/niah-parser/vuln-list-main/nvd/%s/%s.json" % (year.upper(), cve_id.upper()), "r") as fdata:
+                jsondata = json.load(fdata)
+            
+            baseSeverity = jsondata['impact']['baseMetricV2']['severity']
+            basemetricv2_data['severity'] = baseSeverity
+
+            query = "update vuln_tab set basemetricv2_data='%s' where niahid='%s'" % (json.dumps(basemetricv2_data), niahid)
+            self.cursor.execute(query)
+            self.connection.commit()
+        except:
+            print(cve_id)
+            baseSeverity = "NONE"
+
+        return baseSeverity
+
+    def update_baseSeverity(self, cve_id, year, niahid, basemetricv3_data):
+        try:
+            with open("/home/niah-parser/vuln-list-main/nvd/%s/%s.json" % (year.upper(), cve_id.upper()), "r") as fdata:
+                jsondata = json.load(fdata)
+            
+            baseSeverity = jsondata['impact']['baseMetricV3']['cvssV3']['baseSeverity']
+            basemetricv3_data['baseSeverity'] = baseSeverity
+
+            query = "update vuln_tab set basemetricv3_data='%s' where niahid='%s'" % (json.dumps(basemetricv3_data), niahid)
+            self.cursor.execute(query)
+            self.connection.commit()
+        except:
+            print(cve_id)
+            baseSeverity = "NONE"
+
+        return baseSeverity
+
     def nvdLoad(self, date_update): 
         with open("application.config", "r") as f:
             app_json_db = json.load(f)
@@ -314,7 +373,7 @@ class cveFeed():
         while year_number >= 2001:
             year_tab.append(year_number)
             year_number -= 1
-            
+                        
         year_tab.append('0000')
         
         res_tables = []
@@ -327,6 +386,7 @@ class cveFeed():
         i = 0
 
         for year_number in year_tab:
+            print("### - %s" % year_number)
             exploits_db = self.get_exploits(year_number)
 
             complete_res = []
@@ -338,7 +398,8 @@ class cveFeed():
             if year_number == '0000':
                 cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab where data_id not LIKE '%%CVE-%%' ORDER BY revision DESC"
             else:
-                cmd = "select distinct(niahid), data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab where data_id LIKE '%%CVE-%s-%%' ORDER BY revision DESC" % year_number
+                #cmd = "select a.niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab a where data_id LIKE '%%CVE-%s-%%' ORDER BY revision DESC" % year_number
+                cmd = "select a.niahid, data_type, data_id, cwe_data, reference_data, description, basemetricv3_data, basemetricv2_data, publisheddate, lastmodifieddate, affected_products_versions, status, vuln_status, revision from vuln_tab a INNER JOIN (select niahid, MAX(revision) from vuln_tab where data_id LIKE '%%CVE-%s-%%' GROUP BY niahid) AS b ON a.niahid = b.niahid;" % year_number
 
             self.cursor.execute(cmd)
             fetchData = self.cursor.fetchall()
@@ -350,10 +411,17 @@ class cveFeed():
                     data_id = row[2]
                     data_id = data_id.upper()
                     cve_id = data_id
+
+                    if data_type == "CVE":
+                        year = data_id.split("-")[1]
+                    else:
+                        year = ''
+
                     if niahid not in vulns:
                         vulns.append(niahid)
                         cwe_data = row[3]
                         reference_data = row[4]
+
                         try:
                             if 'data' not in reference_data:
                                 reference_data['data'] = []
@@ -413,11 +481,24 @@ class cveFeed():
                         else:
                             retRes[cve_id]['CVSS30']['baseScore'] = ''
                         if 'baseSeverity' in basemetricv3_data:
-                            retRes[cve_id]['CVSS30']['baseSeverity'] = basemetricv3_data['baseSeverity'].upper()
+                            try:
+                                retRes[cve_id]['CVSS30']['baseSeverity'] = basemetricv3_data['baseSeverity'].upper()
+                            except:
+                                if year:
+                                    baseSeverity = self.update_baseSeverity(cve_id, year, niahid, basemetricv3_data)
+                                else:
+                                    baseSeverity = 'NONE'
+                                basemetricv3_data['baseSeverity'] = baseSeverity
+                                retRes[cve_id]['CVSS30']['baseSeverity'] = baseSeverity.upper()
                         else:
                             retRes[cve_id]['CVSS30']['baseSeverity'] = ''
 
-                        retRes[cve_id]['Reference'] = ','.join(reference_data['data'])
+                        try:
+                            retRes[cve_id]['Reference'] = ','.join(reference_data['data'])
+                        except:
+                            reference_updated = self.update_reference(niahid, reference_data['data'])
+                            retRes[cve_id]['Reference'] = ','.join(reference_updated['data'])
+                            reference_data = reference_updated
 
                         retRes[cve_id]['CVSS20'] = {}
                         if 'accessVector' in basemetricv2_data:
@@ -437,7 +518,15 @@ class cveFeed():
                         else:
                             retRes[cve_id]['CVSS20']['baseScore'] = ''
                         if 'severity' in basemetricv2_data:
-                            retRes[cve_id]['CVSS20']['baseSeverity'] = basemetricv2_data['severity'].upper()
+                            try:
+                                retRes[cve_id]['CVSS20']['baseSeverity'] = basemetricv2_data['severity'].upper()
+                            except:
+                                if year:
+                                    baseSeverity = self.update_baseSeverity_v2(cve_id, year, niahid, basemetricv2_data)
+                                else:
+                                    baseSeverity = 'NONE'
+                                retRes[cve_id]['CVSS20']['baseSeverity'] = baseSeverity.upper()
+                                basemetricv2_data['severity'] = baseSeverity
                         else:
                             retRes[cve_id]['CVSS20']['baseSeverity'] = ''
 
@@ -548,7 +637,12 @@ class cveFeed():
                                     else:
                                         res['advisoryid'] = ''
 
-                                    res['platform'] = det['platform']
+                                    if re.findall(r'(.*)\/', str(det['platform'])):
+                                        res['platform'] = re.findall(r'(.*)\/', str(det['platform']))[0]
+                                        res['platform_type'] = re.findall(r'\/(.*)', str(det['platform']))[0]
+                                        det['platform'] = re.findall(r'(.*)\/', str(det['platform']))[0]
+                                    else:
+                                        res['platform'] = det['platform']
 
                                     if advisory not in platform_lists['data']:
                                         platform_lists['data'][advisory] = {}
@@ -631,7 +725,6 @@ class cveFeed():
                                 if advisory == "ADV":
                                     if res not in retRes[cve_id]['Products']['data']:
                                         retRes[cve_id]['Products']['data'].append(res)
-
 
                                 if product in applications:
                                     res['baseScoreV2'] = "%s" % (retRes[cve_id]['CVSS20']['baseScore'])
@@ -733,7 +826,6 @@ class cveFeed():
                             if pkg['advisoryid'] not in res_tab['advisoryid']:
                                 res_tab['advisoryid'].append(pkg['advisoryid'])
                     
-
                 if 'plugin_advisory' in retRes[cve_id]:
                     for pkg in retRes[cve_id]['plugin_advisory']['data']:
                         if 'plugin' in pkg:
@@ -842,12 +934,10 @@ class cveFeed():
             with open("/var/DB/feeds/platform/%s.json" % (family), "w") as f:
                     json.dump(res, f, indent = 2)
 
-
         # Application feeds
         print("[ OK ] Application Feeds generation")
         with open("/var/DB/feeds/application/application.json", "w") as outfile:
             json.dump(applications_lists, outfile, indent = 2)
-
 
         # Language and plugin feeds
         print("[ OK ] languages, plugins and platform feeds generation started")
