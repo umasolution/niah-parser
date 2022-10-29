@@ -438,6 +438,7 @@ class GHSAdvisory():
             references = {}
             references['data'] = []
             for refe in referes:
+                refe = refe.replace("'","")
                 references['data'].append(refe)
 
             description = {}
@@ -516,6 +517,7 @@ class GHSAdvisory():
                 references = fetchData[0][1]
                 if len(referes) > 0:
                     for refe in referes:
+                        refe = refe.replace("'","")
                         references['data'].append(refe)
 
                 try:
