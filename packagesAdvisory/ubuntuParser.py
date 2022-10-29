@@ -52,25 +52,28 @@ class ubuntuParser():
 
     def rssfeed(self, platforms):
         for platform in platforms:
-            target_dir = "/var/DB/packages/platforms/ubuntu/%s" % platform
-            if not os.path.isdir(target_dir):
-                os.system("mkdir %s" % target_dir)
+            try:
+                target_dir = "/var/DB/packages/platforms/ubuntu/%s" % platform
+                if not os.path.isdir(target_dir):
+                    os.system("mkdir %s" % target_dir)
 
-            print("[ INFO ] %s platform rss fetching started" % platform)
-            url = "https://packages.ubuntu.com/%s/main/newpkg?format=rss" % platform
-            print("RSS - Link - %s" % url)
-            headers = requests.utils.default_headers()
-            headers.update({
-                'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
-            })
-            page = requests.get(url, headers=headers)
-            results = xmltodict.parse(page.content)
-            if 'item' in results['rdf:RDF']:
-                for item in tqdm(results['rdf:RDF']['item']):
-                    link = item['link']
-                    print("1 - %s" % link)
-                    res = self.get_package(link, platform)
-                    packagename = res['package']
+                print("[ INFO ] %s platform rss fetching started" % platform)
+                url = "https://packages.ubuntu.com/%s/main/newpkg?format=rss" % platform
+                print("RSS - Link - %s" % url)
+                headers = requests.utils.default_headers()
+                headers.update({
+                    'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
+                })
+                page = requests.get(url, headers=headers)
+                results = xmltodict.parse(page.content)
+                if 'item' in results['rdf:RDF']:
+                    for item in tqdm(results['rdf:RDF']['item']):
+                        link = item['link']
+                        print("1 - %s" % link)
+                        res = self.get_package(link, platform)
+                        packagename = res['package']
+            except:
+                pass
 
     def get_pkg_details(self, package, platform=None):
         results = {}
