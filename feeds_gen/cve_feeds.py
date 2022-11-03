@@ -661,6 +661,7 @@ class cveFeed():
                                     res_platform['baseScore'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseScore'], retRes[cve_id]['CVSS30']['baseScore'])
                                     res_platform['severity'] = "%s/%s" % (retRes[cve_id]['CVSS20']['baseSeverity'], retRes[cve_id]['CVSS30']['baseSeverity'])
                                     res_platform['accessvector'] ="%s/%s" % (retRes[cve_id]['CVSS20']['attackVector'], retRes[cve_id]['CVSS30']['attackVector'])
+                                    res_platform['vectorString'] = "%s/%s" % (retRes[cve_id]['CVSS20']['vectorString'], retRes[cve_id]['CVSS30']['vectorString'])
                                     res_platform['vectorStringV2'] = retRes[cve_id]['CVSS20']['vectorString']
                                     res_platform['vectorStringV3'] = retRes[cve_id]['CVSS30']['vectorString']
                                     res_platform['lastModifiedDate'] = retRes[cve_id]['lastModifiedDate']
@@ -668,9 +669,12 @@ class cveFeed():
                                     res_platform['niahid'] = retRes[cve_id]['niahid']
                                     res_platform['reference'] = retRes[cve_id]['Reference']
                                     res_platform['description'] = retRes[cve_id]['description']
-                                    res_platform['cwe'] = self.getCWEText(retRes[cve_id]['CWE'])
+                                    cwe = self.getCWEText(retRes[cve_id]['CWE'])
+                                    res_platform['cwe'] = cwe
+                                    res_platform['cwe_text'] = retRes[cve_id]['CWE']
                                     res_platform['data_id'] = data_id
                                     res_platform['cve_id'] = cve_id
+                                    res_platform['vuln_name'] = "(%s) %s" % (cve_id, cwe)
 
                                     if advisory == "ubuntu":
                                         reference = "https://ubuntu.com/security/%s" % cve_id.upper()
