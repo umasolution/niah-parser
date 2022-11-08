@@ -457,7 +457,7 @@ class cveFeed():
                         if 'data' in cwe_data:
                             retRes[cve_id]['CWE'] = ','.join(self.uniq_cwe(cwe_data['data']))
                         else:
-                            retRes[cve_id]['CWE'] = ''
+                            retRes[cve_id]['CWE'] = 'NONE'
                         if 'nvd' in description:
                             retRes[cve_id]['description'] = description['nvd']
                         else:
@@ -467,19 +467,19 @@ class cveFeed():
                         if 'attackVector' in basemetricv3_data:
                             retRes[cve_id]['CVSS30']['attackVector'] = basemetricv3_data['attackVector'].upper()
                         else:
-                            retRes[cve_id]['CVSS30']['attackVector'] = ''
+                            retRes[cve_id]['CVSS30']['attackVector'] = 'NONE'
                         if 'vectorString' in basemetricv3_data:
                             retRes[cve_id]['CVSS30']['vectorString'] = basemetricv3_data['vectorString']
                         else:
-                            retRes[cve_id]['CVSS30']['vectorString'] = ''
+                            retRes[cve_id]['CVSS30']['vectorString'] = 'NONE'
                         if 'exploitabilityScore' in basemetricv3_data:
                             retRes[cve_id]['CVSS30']['exploitabilityScore'] = basemetricv3_data['exploitabilityScore']
                         else:
-                            retRes[cve_id]['CVSS30']['exploitabilityScore'] = ''
+                            retRes[cve_id]['CVSS30']['exploitabilityScore'] = 'NONE'
                         if 'baseScore' in basemetricv3_data:
                             retRes[cve_id]['CVSS30']['baseScore'] = basemetricv3_data['baseScore']
                         else:
-                            retRes[cve_id]['CVSS30']['baseScore'] = ''
+                            retRes[cve_id]['CVSS30']['baseScore'] = 'NONE'
                         if 'baseSeverity' in basemetricv3_data:
                             try:
                                 retRes[cve_id]['CVSS30']['baseSeverity'] = basemetricv3_data['baseSeverity'].upper()
@@ -491,7 +491,7 @@ class cveFeed():
                                 basemetricv3_data['baseSeverity'] = baseSeverity
                                 retRes[cve_id]['CVSS30']['baseSeverity'] = baseSeverity.upper()
                         else:
-                            retRes[cve_id]['CVSS30']['baseSeverity'] = ''
+                            retRes[cve_id]['CVSS30']['baseSeverity'] = 'NONE'
 
                         try:
                             retRes[cve_id]['Reference'] = ','.join(reference_data['data'])
@@ -504,19 +504,19 @@ class cveFeed():
                         if 'accessVector' in basemetricv2_data:
                             retRes[cve_id]['CVSS20']['attackVector'] = basemetricv2_data['accessVector'].upper()
                         else:
-                            retRes[cve_id]['CVSS20']['attackVector'] = ''
+                            retRes[cve_id]['CVSS20']['attackVector'] = 'NONE'
                         if 'vectorString' in basemetricv2_data:
                             retRes[cve_id]['CVSS20']['vectorString'] = basemetricv2_data['vectorString']
                         else:
-                            retRes[cve_id]['CVSS20']['vectorString'] = ''
+                            retRes[cve_id]['CVSS20']['vectorString'] = 'NONE'
                         if 'exploitabilityScore' in basemetricv2_data:
                             retRes[cve_id]['CVSS20']['exploitabilityScore'] = basemetricv2_data['exploitabilityScore']
                         else:
-                            retRes[cve_id]['CVSS20']['exploitabilityScore'] = ''
+                            retRes[cve_id]['CVSS20']['exploitabilityScore'] = 'NONE'
                         if 'baseScore' in basemetricv2_data:
                             retRes[cve_id]['CVSS20']['baseScore'] = basemetricv2_data['baseScore']
                         else:
-                            retRes[cve_id]['CVSS20']['baseScore'] = ''
+                            retRes[cve_id]['CVSS20']['baseScore'] = 'NONE'
                         if 'severity' in basemetricv2_data:
                             try:
                                 retRes[cve_id]['CVSS20']['baseSeverity'] = basemetricv2_data['severity'].upper()
@@ -528,7 +528,7 @@ class cveFeed():
                                 retRes[cve_id]['CVSS20']['baseSeverity'] = baseSeverity.upper()
                                 basemetricv2_data['severity'] = baseSeverity
                         else:
-                            retRes[cve_id]['CVSS20']['baseSeverity'] = ''
+                            retRes[cve_id]['CVSS20']['baseSeverity'] = 'NONE'
 
                         if cve_id in exploits_db:
                             retRes[cve_id]['Exploits'] = exploits_db[cve_id]
@@ -688,15 +688,6 @@ class cveFeed():
                                         
                                         retRes[cve_id]['platform_advisory']['data'].append(res)
                                         
-                                        #if 'ubuntu' not in results['platform']:
-                                        #    results['platform']['ubuntu'] = {}
-                                        
-                                        #if cve_id not in results['platform']['ubuntu']:
-                                        #    results['platform']['ubuntu'][cve_id] = []
-                                        
-                                        #if res not in results['platform']['ubuntu'][cve_id]:
-                                        #    results['platform']['ubuntu'][cve_id].append(res)
-                                        
                                         if 'Exploits' in retRes[cve_id]:
                                             res_platform['exploits'] = self.get_exploit_str(retRes[cve_id]['Exploits'])
                                         else:
@@ -715,13 +706,6 @@ class cveFeed():
                                         if reference not in reference_data['data']:
                                             reference_data['data'].append(reference)
                                         retRes[cve_id]['platform_advisory']['data'].append(res)
-
-                                        #if 'debian' not in results['platform']:
-                                        #    results['platform']['debian'] = {}
-                                        #if cve_id not in results['platform']['debian']:
-                                        #    results['platform']['debian'][cve_id] = []
-                                        #if res not in results['platform']['debian'][cve_id]:
-                                        #    results['platform']['debian'][cve_id].append(res)
 
                                         if res_platform not in platform_lists['data'][advisory][det['platform']]: 
                                             platform_lists['data'][advisory][det['platform']].append(res_platform)
@@ -1006,8 +990,9 @@ class cveFeed():
     def uniq_cwe(self, cwe_ids):
         cwes = []
         for cwe in cwe_ids:
-            if cwe not in cwes:
-                cwes.append(cwe)
+            if 'data' not in cwes:
+                if cwe not in cwes:
+                    cwes.append(cwe)
     
         return cwes
 
