@@ -990,7 +990,7 @@ class cveFeed():
     def uniq_cwe(self, cwe_ids):
         cwes = []
         for cwe in cwe_ids:
-            if 'data' not in cwes:
+            if cwe.lower() != "data":
                 if cwe not in cwes:
                     cwes.append(cwe)
     
