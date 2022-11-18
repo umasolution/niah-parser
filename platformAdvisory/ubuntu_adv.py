@@ -111,23 +111,36 @@ class moniUbuntuDB():
 
     def sync_ubuntu_json(self, date_update):
         headers = {
-            'accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            # 'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
         }
-
-        final_results = {}
-        final_results['data'] = []
 
         i = 0
 
         while True:
+            if os.path.isfile('ubuntu_advisory.json'):
+                with open('ubuntu_advisory.json', 'r') as f:
+                    final_results = json.load(f)
+            else:
+                final_results = {}
+                final_results['data'] = []
+
+            print("Page - %s" % i)
             params = {
                 'offset': '%s' % i,
                 'limit': '100',
-                'package': 'firefox'
             }
             i = i + 100
             self.run_cmd()
-            response = requests.get('https://ubuntu.com/security/cves.json', params=params, headers=headers, timeout=3)
+            response = requests.get('https://ubuntu.com/security/cves.json', params=params, headers=headers, timeout=5)
             jsonData = response.json()
 
             total_results = jsonData['total_results']
@@ -136,7 +149,6 @@ class moniUbuntuDB():
             
             cves = jsonData['cves']
             for cve in cves:
-
                 bugs = cve['bugs']
                 score = cve['cvss3']
                 description = cve['description']
@@ -155,6 +167,157 @@ class moniUbuntuDB():
                     type = ''
                 notices_ids = cve['notices_ids']
                 notices = cve['notices']
+                priority = cve['priority']
+                published = cve['published']
+                references = cve['references']
+                cve_status = cve['status']
+                description = cve['description']
+                usn_id = ''
+
+                
+                if len(notices) > 0:
+                    for notice in notices:
+                        if 'description' in notice:
+                            description = notice['description']
+
+                        results = {}
+                        results['description'] = description
+
+                        if 'id' in notice:
+                            usn_id = notice['id']
+                        else:
+                            usn_id = ''
+                        results['usn_id'] = usn_id
+                        if 'published' in notice:
+                            published = notice['published']
+                        else:
+                            published = ''
+                        results['published'] = published
+                        if 'references' in notice:
+                            references = notice['references']
+                        else:
+                            references = []
+                        results['references'] = references
+                        releases_packages = []
+
+                        if 'release_packages' in notice:
+                            release_packages = notice['release_packages']
+                            for platform in release_packages:
+                                for det in release_packages[platform]:
+                                    res = {}
+                                    res['platform'] = platform
+                                    is_source = det['is_source']
+                                    if is_source:
+                                        res['source'] = "yes"
+                                    else:
+                                        res['source'] = "no"
+                                    name = det['name']
+                                    res['package'] = name
+                                    version = det['version']
+                                    res['version'] = version
+                                    if 'source_link' in det:
+                                        source_link = det['source_link']
+                                        res['source_link'] = source_link
+                                    if version:
+                                        res['status'] = "fixed"
+                                    if res not in releases_packages:
+                                        releases_packages.append(res)
+                        
+                        results['releases_packages'] = releases_packages
+
+                        if 'cves_ids' in notice:
+                            cve_ids = notice['cves_ids']
+                        
+                        for cve_id in cve_ids:
+                            results['cve_id'] = cve_id
+
+                            if results not in final_results['data']:
+                                final_results['data'].append(results)
+
+                results = {}
+                results['description'] = description
+                results['usn_id'] = usn_id
+                results['published'] = published
+                results['references'] = references
+                releases_packages = []
+                results['cve_id'] = id
+
+                check = False
+
+                if 'packages' in cve:
+                    packages = cve['packages']
+                    for package in packages:
+                        name = package['name'] 
+                        source = package['source']
+
+                        if 'statuses' in package:
+                            check = True
+                            statuses = package['statuses']
+                            for status_details in statuses:
+                                release = status_details['release_codename']
+                                status = status_details['status']
+                                res = {}
+                                res['package'] = name
+                                res['source'] = source
+                                res['platform'] = release
+                                res['status'] = status
+                                if res not in releases_packages:
+                                    releases_packages.append(res)
+
+                results['releases_packages'] = releases_packages
+
+                if check:
+                    if results not in final_results['data']:
+                        final_results['data'].append(results)
+
+            with open('ubuntu_advisory.json', 'w') as f:
+                json.dump(final_results, f, indent=4)
+
+    
+    def get_usn_details(self, usn_id):
+        final_results = {}
+        final_results['data'] = []
+
+        if usn_id:
+            headers = {
+                'accept': 'application/json',
+            }
+
+            self.run_cmd()
+            print('https://ubuntu.com/security/notices/%s.json' % usn_id)
+            response = requests.get('https://ubuntu.com/security/notices/%s.json' % usn_id, headers=headers, timeout=3)
+            print(response.text)
+            jsonData = response.json()
+
+            cves = jsonData['cves']
+            for cve in cves:
+                bugs = cve['bugs']
+                score = cve['cvss3']
+                description = cve['description']
+                id = cve['id']
+                if 'summary' in cve:
+                    summary = cve['summary']
+                else:
+                    summary = ''
+                if 'title' in cve:
+                    title = cve['title']
+                else:
+                    title = ''
+                if 'type' in cve:
+                    type = cve['type']
+                else:
+                    type = ''
+                
+                if 'notices_ids' in cve:
+                    notices_ids = cve['notices_ids']
+                else:
+                    notices_ids = []
+
+                if 'notices' in cve:
+                    notices = cve['notices']
+                else:
+                    notices = []
+
                 priority = cve['priority']
                 published = cve['published']
                 references = cve['references']
@@ -245,156 +408,15 @@ class moniUbuntuDB():
                                 res['source'] = source
                                 res['platform'] = release
                                 res['status'] = status
+                                res['version'] = status
                                 if res not in releases_packages:
                                     releases_packages.append(res)
 
+                results['releases_packages'] = releases_packages
+                
                 if check:
                     if results not in final_results['data']:
                         final_results['data'].append(results)
-
-        with open('ubuntu_advisory.json', 'w') as f:
-            json.dump(final_results, f, indent=4)
-
-    
-    def get_usn_details(self, usn_id):
-        headers = {
-            'accept': 'application/json',
-        }
-
-        final_results = {}
-        final_results['data'] = []
-        self.run_cmd()
-        response = requests.get('https://ubuntu.com/security/notices/%s.json' % usn_id, headers=headers, timeout=3)
-        jsonData = response.json()
-
-        cves = jsonData['cves']
-        for cve in cves:
-            bugs = cve['bugs']
-            score = cve['cvss3']
-            description = cve['description']
-            id = cve['id']
-            if 'summary' in cve:
-                summary = cve['summary']
-            else:
-                summary = ''
-            if 'title' in cve:
-                title = cve['title']
-            else:
-                title = ''
-            if 'type' in cve:
-                type = cve['type']
-            else:
-                type = ''
-            
-            if 'notices_ids' in cve:
-                notices_ids = cve['notices_ids']
-            else:
-                notices_ids = []
-
-            if 'notices' in cve:
-                notices = cve['notices']
-            else:
-                notices = []
-
-            priority = cve['priority']
-            published = cve['published']
-            references = cve['references']
-            cve_status = cve['status']
-            
-            if len(notices) > 0:
-                for notice in notices:
-                    if 'description' in notice:
-                        description = notice['description']
-
-                    results = {}
-                    results['description'] = description
-                    if 'id' in notice:
-                        usn_id = notice['id']
-                    else:
-                        usn_id = ''
-                    results['usn_id'] = usn_id
-                    if 'published' in notice:
-                        published = notice['published']
-                    else:
-                        published = ''
-                    results['published'] = published
-                    if 'references' in notice:
-                        references = notice['references']
-                    else:
-                        references = []
-                    results['references'] = references
-                    releases_packages = []
-
-                    if 'release_packages' in notice:
-                        release_packages = notice['release_packages']
-                        for platform in release_packages:
-                            for det in release_packages[platform]:
-                                res = {}
-                                res['platform'] = platform
-                                is_source = det['is_source']
-                                if is_source:
-                                    res['source'] = "yes"
-                                else:
-                                    res['source'] = "no"
-                                name = det['name']
-                                res['package'] = name
-                                version = det['version']
-                                res['version'] = version
-                                if 'source_link' in det:
-                                    source_link = det['source_link']
-                                    res['source_link'] = source_link
-                                if version:
-                                    res['status'] = "fixed"
-                                if res not in releases_packages:
-                                    releases_packages.append(res)
-                    
-                    results['releases_packages'] = releases_packages
-
-                    if 'cves_ids' in notice:
-                        cve_ids = notice['cves_ids']
-                    
-                    for cve_id in cve_ids:
-                        results['cve_id'] = cve_id
-
-                        if results not in final_results['data']:
-                            final_results['data'].append(results)
-
-            results = {}
-            results['description'] = description
-            results['usn_id'] = usn_id
-            results['published'] = published
-            results['references'] = references
-            releases_packages = []
-            results['cve_id'] = id
-
-            check = False
-
-            if 'packages' in cve:
-                packages = cve['packages']
-                for package in packages:
-                    name = package['name'] 
-                    source = package['source']
-
-                    if 'statuses' in package:
-                        check = True
-                        statuses = package['statuses']
-                        for status_details in statuses:
-                            release = status_details['release_codename']
-                            status = status_details['status']
-                            res = {}
-                            res['package'] = name
-                            res['source'] = source
-                            res['platform'] = release
-                            res['status'] = status
-                            res['version'] = status
-                            if res not in releases_packages:
-                                releases_packages.append(res)
-
-            results['releases_packages'] = releases_packages
-            
-            if check:
-                if results not in final_results['data']:
-                    final_results['data'].append(results)
 
         return final_results
     
@@ -402,7 +424,7 @@ class moniUbuntuDB():
         with open("ubuntu_advisory.json", "r") as f:
             jsonData = json.load(f)
 
-        for jdata in jsonData['data']:
+        for jdata in tqdm(jsonData['data']):
             description = jdata['description']
             usn_id = jdata['usn_id']
             published = jdata['published']
