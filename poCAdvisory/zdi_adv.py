@@ -121,7 +121,7 @@ class moniZdiDB():
                             self.connection.commit()
                 except:
                     pass
-                
+            
                 if self.daily:
                     break
 
