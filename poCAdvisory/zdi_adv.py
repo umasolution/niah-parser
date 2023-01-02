@@ -62,6 +62,7 @@ class moniZdiDB():
 
                 data = re.findall(r'cases: \[({.*})\]', str(soup))
                 try:
+
                     for d in data[0].split('},'):
                         zdiID = ""
                         title = ""
@@ -120,7 +121,7 @@ class moniZdiDB():
                             self.cursor.execute(cmd)
                             self.connection.commit()
                 except:
-                    pass
+                    pass    
             
                 if self.daily:
                     break
