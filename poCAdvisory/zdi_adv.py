@@ -61,64 +61,67 @@ class moniZdiDB():
                 soup = BeautifulSoup(page.content, "html.parser")
 
                 data = re.findall(r'cases: \[({.*})\]', str(soup))
-                for d in data[0].split('},'):
-                    zdiID = ""
-                    title = ""
-                    pub_date = ""
-                    zdi_can = ""
-                    ibase = ""
-                    cve_id = ""
-                    affected_vendor = ""
-                    vuln_name = ''
-                    description = ''
-                    if re.findall(r'zdiId\': \'(.*?)\',', str(d)):
-                        zdiID = re.findall(r'zdiId\': \'(.*?)\',', str(d))[0]
-                    if re.findall(r'title\': \'(.*?)\',', str(d)):
-                        detailTxt = re.findall(r'title\': \'(.*?)\',', str(d))[0]
-                        detailTxt = detailTxt.replace("/", "")
-                        detailTxt = detailTxt.replace("()", "")
-                        detailTxt = detailTxt.replace("( )", "")
-                        detailTxt = detailTxt.replace("'", "")
-                        detailTxt = re.sub(r'(\\0)', '', detailTxt)
-                        detailTxt = detailTxt.replace("''", "")
-                        detailTxt = detailTxt.replace("' '", "")
-                        detailTxt = detailTxt.replace("\\0", "\\\\0")
-                        detailTxt = detailTxt.replace('"', "'")
-                        detailTxt = detailTxt.replace("/", "")
-                        detailTxt = re.sub('[^a-zA-Z0-9 \n\.]', '', detailTxt)
-                        description = detailTxt
-                        vuln_name = detailTxt
+                try:
+                    for d in data[0].split('},'):
+                        zdiID = ""
+                        title = ""
+                        pub_date = ""
+                        zdi_can = ""
+                        ibase = ""
+                        cve_id = ""
+                        affected_vendor = ""
+                        vuln_name = ''
+                        description = ''
+                        if re.findall(r'zdiId\': \'(.*?)\',', str(d)):
+                            zdiID = re.findall(r'zdiId\': \'(.*?)\',', str(d))[0]
+                        if re.findall(r'title\': \'(.*?)\',', str(d)):
+                            detailTxt = re.findall(r'title\': \'(.*?)\',', str(d))[0]
+                            detailTxt = detailTxt.replace("/", "")
+                            detailTxt = detailTxt.replace("()", "")
+                            detailTxt = detailTxt.replace("( )", "")
+                            detailTxt = detailTxt.replace("'", "")
+                            detailTxt = re.sub(r'(\\0)', '', detailTxt)
+                            detailTxt = detailTxt.replace("''", "")
+                            detailTxt = detailTxt.replace("' '", "")
+                            detailTxt = detailTxt.replace("\\0", "\\\\0")
+                            detailTxt = detailTxt.replace('"', "'")
+                            detailTxt = detailTxt.replace("/", "")
+                            detailTxt = re.sub('[^a-zA-Z0-9 \n\.]', '', detailTxt)
+                            description = detailTxt
+                            vuln_name = detailTxt
 
-                    if re.findall(r'publishDate\': \'(.*?)\',', str(d)):
-                        pub_date = re.findall(r'publishDate\': \'(.*?)\',', str(d))[0]
-                        try:
-                            res1 = dateConvert()
-                            pub_date = res1.dateCon(pub_date)
-                        except:
-                            pass
-                    if re.findall(r'zdiCan\': \'(.*?)\',', str(d)):
-                        zdi_can = re.findall(r'zdiCan\': \'(.*?)\',', str(d))[0]
-                    if re.findall(r'idBase\': (.*?),', str(d)):
-                        ibase = re.findall(r'idBase\': (.*?),', str(d))[0]
-                    if re.findall(r'cve\': \'(.*?)\',', str(d)):
-                        cves = re.findall(r'(CVE-\d+-\d+)', str(d), re.IGNORECASE)
-                    if re.findall(r'affectedVendors\': \'(.*?)\'', str(d)):
-                        affected_vendor = re.findall(r'affectedVendors\': \'(.*?)\'', str(d))[0]
+                        if re.findall(r'publishDate\': \'(.*?)\',', str(d)):
+                            pub_date = re.findall(r'publishDate\': \'(.*?)\',', str(d))[0]
+                            try:
+                                res1 = dateConvert()
+                                pub_date = res1.dateCon(pub_date)
+                            except:
+                                pass
+                        if re.findall(r'zdiCan\': \'(.*?)\',', str(d)):
+                            zdi_can = re.findall(r'zdiCan\': \'(.*?)\',', str(d))[0]
+                        if re.findall(r'idBase\': (.*?),', str(d)):
+                            ibase = re.findall(r'idBase\': (.*?),', str(d))[0]
+                        if re.findall(r'cve\': \'(.*?)\',', str(d)):
+                            cves = re.findall(r'(CVE-\d+-\d+)', str(d), re.IGNORECASE)
+                        if re.findall(r'affectedVendors\': \'(.*?)\'', str(d)):
+                            affected_vendor = re.findall(r'affectedVendors\': \'(.*?)\'', str(d))[0]
 
-                    reference = "https://www.zerodayinitiative.com/advisories/%s/" % zdiID
+                        reference = "https://www.zerodayinitiative.com/advisories/%s/" % zdiID
 
-                    details = {}
-                    details['affected_vendor'] = affected_vendor
-                    details['year'] = year
-                    details['zdi_can'] = zdi_can
-                    details['ibase'] = ibase
+                        details = {}
+                        details['affected_vendor'] = affected_vendor
+                        details['year'] = year
+                        details['zdi_can'] = zdi_can
+                        details['ibase'] = ibase
 
-                    for cve_id in cves:
-                        cmd = """INSERT INTO PoCReference_DB("application", "app_id", "cve_id", "description", "vuln_name", "details", "publish_date", "reference", "last_update")VALUES ('{application}', '{zdiID}', '{cve_id}', '{description}', '{vuln_name}', '{details}', '{pub_date}', '{reference}', '{date_update}')ON CONFLICT("cve_id", "app_id", "application")DO UPDATE SET ("description", "vuln_name", "details", "publish_date", "reference", "last_update") = ('{description}', '{vuln_name}', '{details}', '{pub_date}', '{reference}', '{date_update}');""".format(zdiID=zdiID, cve_id=cve_id, description=description, details=json.dumps(details), vuln_name=vuln_name, pub_date=pub_date, reference=reference, date_update=date_update, application='zdi')
-                        print(cmd)
-                        self.cursor.execute(cmd)
-                        self.connection.commit()
-            
+                        for cve_id in cves:
+                            cmd = """INSERT INTO PoCReference_DB("application", "app_id", "cve_id", "description", "vuln_name", "details", "publish_date", "reference", "last_update")VALUES ('{application}', '{zdiID}', '{cve_id}', '{description}', '{vuln_name}', '{details}', '{pub_date}', '{reference}', '{date_update}')ON CONFLICT("cve_id", "app_id", "application")DO UPDATE SET ("description", "vuln_name", "details", "publish_date", "reference", "last_update") = ('{description}', '{vuln_name}', '{details}', '{pub_date}', '{reference}', '{date_update}');""".format(zdiID=zdiID, cve_id=cve_id, description=description, details=json.dumps(details), vuln_name=vuln_name, pub_date=pub_date, reference=reference, date_update=date_update, application='zdi')
+                            print(cmd)
+                            self.cursor.execute(cmd)
+                            self.connection.commit()
+                except:
+                    pass
+                
                 if self.daily:
                     break
 
